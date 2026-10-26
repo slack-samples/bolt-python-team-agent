@@ -1,21 +1,32 @@
-# Starter Agent for Slack (Bolt for Python and OpenAI Agents SDK)
+# Team Agent for Slack (Bolt for Python and OpenAI Agents SDK)
 
-A minimal starter template for building AI-powered Slack agents with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) using models from [OpenAI](https://openai.com). Works with the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server) to search messages, read channels, send messages, and manage canvases — all from within your agent.
+A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) using models from [OpenAI](https://openai.com). It keeps your team's runbooks current as threads wrap up and helps route the requests that come in. Runbooks are Slack canvases that the agent reads and writes through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
 
 ## App Overview
 
-The starter agent interacts with users through four entry points:
+The team agent interacts with users through five entry points:
 
 * **App Home** — Displays a welcome message with instructions on how to interact.
-* **Direct Messages** — Users message the agent directly. It responds in-thread, maintaining context across follow-ups.
-* **Channel @mentions** — Mention the agent in any channel to get a response without leaving the conversation.
+* **Direct Messages** — Users message the agent directly to find a runbook or triage a request. It responds in-thread, maintaining context across follow-ups.
+* **Channel @mentions** — Mention the agent in a team channel with a request. It answers from a runbook when one covers it, or points to who can help.
+* **Channel threads** — The agent follows threads in channels it's a member of. Once a thread goes quiet, it checks whether the thread settled something worth keeping and offers to save it to a runbook.
 * **Assistant Panel** — Users click _Add Agent_ in Slack, select the agent, and pick from suggested prompts or type a message.
 
-The template also includes one example tool (emoji reactions). Add your own tools to customize it for your use case.
+Most of what the agent can do comes from the Slack MCP Server. The template also includes one app tool (emoji reactions) that the agent uses to show a request was picked up. Add your own tools to customize it for your use case.
+
+### Runbooks
+
+Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the team does something: the steps, who owns it, and who to escalate to. Anyone can read and edit them in Slack, and the agent does too:
+
+* **Reading** — When a request comes in, the agent searches for runbooks that cover it and answers from them.
+* **Writing on request** — Ask the agent to write or fix a runbook and it updates the canvas that covers the topic, or creates one.
+* **Writing as threads wrap up** — Each reply in a channel thread restarts a quiet period (5 minutes by default, set with `RUNBOOK_SETTLE_SECONDS`). When the quiet period ends, the agent reads the thread with its bot token and checks whether it fixed a problem, named an owner, or corrected how the team does something. If so, it posts an _Add to runbook_ button in the thread. Most threads aren't worth saving, and the agent stays quiet for those.
+
+Clicking _Add to runbook_ saves the thread as the person who clicked: the agent uses their Slack MCP Server token to update the runbook that covers the topic, or to create one, and replaces the button with a link to what changed. The edit shows their name, and nothing is written until someone asks. While saving, the agent can only read the thread, search, and read, create, or update canvases. It can't send messages.
 
 ### Slack MCP Server
 
-When connected to the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), the agent can search messages and files, read channel history and threads, send and schedule messages, and create and update canvases. When deployed with OAuth (HTTP mode), the agent automatically connects to the Slack MCP Server using the user's token.
+The agent reaches your team's runbooks through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), so connect it before you start. When deployed with OAuth (HTTP mode), the agent connects to the Slack MCP Server using the token of the person it's working with. Without it, the agent can still chat but can't read or write runbooks.
 
 ## Setup
 
@@ -83,8 +94,8 @@ slack login
 #### Initializing the project
 
 ```sh
-slack create my-starter-agent --template slack-samples/bolt-python-starter-agent --subdir openai-agents-sdk
-cd my-starter-agent
+slack create my-team-agent --template slack-samples/bolt-python-team-agent --subdir openai-agents-sdk
+cd my-team-agent
 ```
 
 </details>
@@ -119,8 +130,8 @@ SLACK_APP_TOKEN=YOUR_SLACK_APP_TOKEN
 #### Initializing the project
 
 ```sh
-git clone https://github.com/slack-samples/bolt-python-starter-agent.git my-starter-agent
-cd my-starter-agent
+git clone https://github.com/slack-samples/bolt-python-team-agent.git my-team-agent
+cd my-team-agent/openai-agents-sdk
 ```
 
 </details>
@@ -271,9 +282,11 @@ Once the agent is running, there are several ways to interact:
 
 **App Home** — Open the agent in Slack and click the _Home_ tab. You'll see a welcome message with instructions on how to interact.
 
-**Direct Messages** — Open a DM with the agent. You'll see suggested prompts like _Write a Message_, _Summarize_, and _Brainstorm_ — pick one or type your own message. The agent replies in a thread. Send follow-up messages in the same thread and the agent will maintain the full conversation context.
+**Direct Messages** — Open a DM with the agent. You'll see suggested prompts like _Find a Runbook_, _Triage a Request_, and _Write a Runbook_ — pick one or type your own message. The agent replies in a thread. Send follow-up messages in the same thread and the agent will maintain the full conversation context.
 
-**Channel @mentions** — Invite the agent to a channel by typing `/invite @agent-name` in the message box, then @mention it followed by your message. The agent responds in a thread so the channel stays clean.
+**Channel @mentions** — Invite the agent to your team channel by typing `/invite @agent-name` in the message box, then @mention it followed by your request. The agent responds in a thread so the channel stays clean.
+
+**Channel threads** — Talk through a problem in a thread in your team channel. Once the thread goes quiet, the agent offers to save what you figured out. Click _Add to runbook_ and it updates or creates the runbook as you. Set `RUNBOOK_SETTLE_SECONDS=30` in `.env` to try this without waiting.
 
 **Assistant Panel** — Click _Add Agent_ in the top-right corner of Slack, select the agent from the list, then pick a suggested prompt or type a message.
 
@@ -309,24 +322,36 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 - `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
 - `app_mentioned.py` — Responds to @mentions in channels.
-- `message.py` — Responds to direct messages from users.
+- `message.py` — Responds to direct messages and restarts the runbook check for channel thread replies.
 
 **`/listeners/actions`** — Handles interactive components:
 
+- `add_to_runbook.py` — Saves a thread to a runbook as the person who clicked _Add to runbook_.
 - `feedback_buttons.py` — Handles thumbs up/down feedback on agent responses.
 
 **`/listeners/views`** — Builds Block Kit views:
 
 - `app_home_builder.py` — Constructs the App Home Block Kit view.
 - `feedback_builder.py` — Creates the feedback button block attached to responses.
+- `runbook_suggestion_builder.py` — Builds the _Add to runbook_ offer posted in quiet threads.
 
 ### `/agent`
 
-The `agent.py` file defines the OpenAI Agents SDK Agent with a system prompt, personality, and tool configuration.
+The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server.
+
+The `runbook_check.py` file defines a small agent with no tools that reads a quiet thread and returns a structured `RunbookCheck`: whether the thread is worth saving, and its topic.
+
+The `runbook_agent.py` file defines the agent that saves a thread to a runbook when someone clicks _Add to runbook_. It returns a structured `RunbookUpdate` and only has the Slack MCP tools it needs to read threads and edit canvases.
+
+The `slack_mcp.py` file connects either agent to the Slack MCP Server with a user's token.
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
 The `tools` directory contains one example tool (emoji reaction) that the agent can call during a conversation.
+
+### `/runbooks`
+
+The `watch.py` file waits for a thread to go quiet, restarting the wait with each new reply. The `suggest.py` file runs the runbook check once a thread settles and posts the _Add to runbook_ offer when the thread is worth saving.
 
 ### `/thread_context`
 

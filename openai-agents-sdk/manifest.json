@@ -1,10 +1,10 @@
 {
   "display_information": {
-    "name": "Starter Agent - OpenAI SDK"
+    "name": "Team Agent - OpenAI SDK"
   },
   "features": {
     "agent_view": {
-      "agent_description": "Hi, I am an agent built using Bolt for Python. I am here to help you out!",
+      "agent_description": "Hi, I am a team agent built using Bolt for Python. I keep your team's runbooks current and help route requests.",
       "suggested_prompts": []
     },
     "app_home": {
@@ -13,7 +13,7 @@
       "messages_tab_read_only_enabled": false
     },
     "bot_user": {
-      "display_name": "Starter Agent - OpenAI SDK (Python)",
+      "display_name": "Team Agent - OpenAI SDK (Python)",
       "always_online": true
     }
   },

@@ -5,7 +5,10 @@ from slack_sdk import WebClient
 
 from agent import AgentDeps, run_agent
 from listeners.views.feedback_builder import build_feedback_blocks
+from runbooks import suggest_when_settled
 from thread_context import conversation_store
+
+THREAD_REPLY_SUBTYPES = {None, "file_share", "thread_broadcast"}
 
 
 def handle_message(
@@ -17,15 +20,28 @@ def handle_message(
     say_stream: SayStream,
     set_status: SetStatus,
 ):
-    """Handle messages sent to the agent via DM or in threads the bot is part of."""
-    # Skip message subtypes (edits, deletes, etc.) and bot messages.
-    if event.get("subtype"):
-        return
+    """Handle messages sent to the agent via DM or in threads the bot is part of.
+
+    Channel thread replies also restart a wait, and once the thread goes quiet
+    the agent checks whether it belongs in a runbook.
+    """
     if event.get("bot_id"):
         return
 
     is_dm = event.get("channel_type") == "im"
     is_thread_reply = event.get("thread_ts") is not None
+
+    if is_thread_reply and not is_dm and event.get("subtype") in THREAD_REPLY_SUBTYPES:
+        suggest_when_settled(
+            client=client,
+            channel_id=context.channel_id,
+            thread_ts=event["thread_ts"],
+            logger=logger,
+        )
+
+    # Skip message subtypes (edits, deletes, etc.).
+    if event.get("subtype"):
+        return
 
     if is_dm:
         pass
