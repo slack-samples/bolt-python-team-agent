@@ -46,9 +46,23 @@ def handle_add_to_runbook(
             topic=topic,
             user_token=context.user_token,
         )
+        if update.changed:
+            client.chat_update(
+                channel=channel_id,
+                ts=message["ts"],
+                markdown_text=update.note,
+            )
+            return
         client.chat_update(
             channel=channel_id,
             ts=message["ts"],
+            text=f"This thread looks like it belongs in a runbook: {topic}",
+            blocks=build_runbook_suggestion_blocks(topic),
+        )
+        client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            thread_ts=thread_ts,
             markdown_text=update.note,
         )
     except Exception as e:

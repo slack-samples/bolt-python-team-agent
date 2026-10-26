@@ -1,7 +1,13 @@
 import asyncio
 import logging
 
-from agents import Agent, RunContextWrapper, Runner
+from agents import (
+    Agent,
+    RunContextWrapper,
+    RunErrorHandlerInput,
+    RunErrorHandlerResult,
+    Runner,
+)
 
 from agent.deps import AgentDeps
 from agent.slack_mcp import slack_mcp_server
@@ -51,6 +57,8 @@ you don't have the Slack MCP tools, say you can't reach the runbooks yet and ask
 to connect the Slack MCP Server from your Home tab.
 """
 
+MAX_TURNS = 50
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,6 +82,16 @@ agent = Agent[AgentDeps](
 )
 
 
+def _out_of_turns(_data: RunErrorHandlerInput) -> RunErrorHandlerResult:
+    """End a turn that used every model call with a message, keeping its history."""
+    return RunErrorHandlerResult(
+        final_output=(
+            f"I used all {MAX_TURNS} steps I get in one turn before finishing. "
+            "Send a message and I'll pick up where I left off."
+        ),
+    )
+
+
 def run_agent(input_items, deps):
     """Run the agent, optionally connecting to the Slack MCP server."""
     if deps.user_token:
@@ -81,7 +99,13 @@ def run_agent(input_items, deps):
         return asyncio.run(_run_with_mcp(input_items, deps))
 
     logger.info("Slack MCP Server disabled (no user_token)")
-    return Runner.run_sync(agent, input=input_items, context=deps)
+    return Runner.run_sync(
+        agent,
+        input=input_items,
+        context=deps,
+        max_turns=MAX_TURNS,
+        error_handlers={"max_turns": _out_of_turns},
+    )
 
 
 async def _run_with_mcp(input_items, deps):
@@ -89,4 +113,10 @@ async def _run_with_mcp(input_items, deps):
     mcp_server = slack_mcp_server(deps.user_token)
     async with mcp_server:
         agent_with_mcp = agent.clone(mcp_servers=[mcp_server])
-        return await Runner.run(agent_with_mcp, input=input_items, context=deps)
+        return await Runner.run(
+            agent_with_mcp,
+            input=input_items,
+            context=deps,
+            max_turns=MAX_TURNS,
+            error_handlers={"max_turns": _out_of_turns},
+        )

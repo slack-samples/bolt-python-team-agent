@@ -1,8 +1,9 @@
 import asyncio
 
-from agents import Agent, Runner
+from agents import Agent, RunErrorHandlerInput, RunErrorHandlerResult, Runner
 from pydantic import BaseModel
 
+from agent.agent import MAX_TURNS
 from agent.slack_mcp import slack_mcp_server
 
 RUNBOOK_PROMPT = """\
@@ -58,6 +59,19 @@ runbook_agent = Agent(
 )
 
 
+def _out_of_turns(_data: RunErrorHandlerInput) -> RunErrorHandlerResult:
+    """End a save that used every model call without claiming a change."""
+    return RunErrorHandlerResult(
+        final_output=RunbookUpdate(
+            changed=False,
+            note=(
+                f"I used all {MAX_TURNS} steps I get before finishing the runbook. "
+                "Click Add to runbook to try again."
+            ),
+        ),
+    )
+
+
 def build_runbook_input(
     channel_id: str, thread_ts: str, permalink: str, topic: str
 ) -> str:
@@ -88,6 +102,9 @@ async def _save_with_mcp(
     async with mcp_server:
         keeper = runbook_agent.clone(mcp_servers=[mcp_server])
         result = await Runner.run(
-            keeper, input=build_runbook_input(channel_id, thread_ts, permalink, topic)
+            keeper,
+            input=build_runbook_input(channel_id, thread_ts, permalink, topic),
+            max_turns=MAX_TURNS,
+            error_handlers={"max_turns": _out_of_turns},
         )
         return result.final_output_as(RunbookUpdate)

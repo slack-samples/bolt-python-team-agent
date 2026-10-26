@@ -58,6 +58,25 @@ class TestAddToRunbook:
         assert "Runbook: Deploys" in final["markdown_text"]
 
     @patch("listeners.actions.add_to_runbook.save_to_runbook")
+    def test_keeps_the_button_when_nothing_changed(self, save_to_runbook):
+        save_to_runbook.return_value = RunbookUpdate(
+            changed=False,
+            note="I used all 50 steps I get before finishing the runbook.",
+        )
+
+        self.click()
+
+        final = self.fake_client.chat_update.call_args_list[-1].kwargs
+        action_ids = [
+            element.action_id
+            for block in final["blocks"]
+            for element in getattr(block, "elements", [])
+        ]
+        assert "add_to_runbook" in action_ids
+        ephemeral = self.fake_client.chat_postEphemeral.call_args.kwargs
+        assert "50 steps" in ephemeral["markdown_text"]
+
+    @patch("listeners.actions.add_to_runbook.save_to_runbook")
     def test_asks_to_connect_without_a_user_token(self, save_to_runbook):
         self.fake_context.user_token = None
 
