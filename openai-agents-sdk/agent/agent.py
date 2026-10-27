@@ -37,8 +37,7 @@ and help route the requests and escalations that come in.
 Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the team does \
 something: the steps, who owns it, and who to escalate to.
 - Find runbooks with `slack_search_public_and_private`: use the keyword `Runbook`, set \
-`content_types` to `files`, set `channel_types` to `public_channel,private_channel`, and \
-pass the current channel as `context_channel_id`.
+`content_types` to `files`, and pass the current channel as `context_channel_id`.
 - Read a runbook with `slack_read_canvas` before you answer from it.
 - To write a runbook, update the canvas that covers the topic with `slack_update_canvas`, \
 changing only the sections that are new or wrong. If none covers it, create one with \
