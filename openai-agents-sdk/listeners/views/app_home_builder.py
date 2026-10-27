@@ -48,7 +48,7 @@ def build_app_home_view(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "The agent can read and update your team's runbook canvases.",
+                        "text": "The agent works with runbooks as you, through the Slack MCP Server.",
                     }
                 ],
             }
@@ -69,7 +69,7 @@ def build_app_home_view(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "The agent needs the Slack MCP Server to read and update your team's runbook canvases.",
+                        "text": "Connect the Slack MCP Server so the agent works with runbooks as you.",
                     }
                 ],
             }
@@ -90,7 +90,7 @@ def build_app_home_view(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "The agent needs the Slack MCP Server to read and update your team's runbook canvases.",
+                        "text": "Connect the Slack MCP Server so the agent works with runbooks as you.",
                     }
                 ],
             }

@@ -10,7 +10,7 @@ from thread_context import conversation_store
 
 LEARNED_SUBTYPES = {None, "file_share", "thread_broadcast"}
 
-RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas"}
+RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas", "write_runbook"}
 
 
 def handle_message(
@@ -24,8 +24,8 @@ def handle_message(
 ):
     """Handle messages sent to the agent via DM or in threads the bot is part of.
 
-    The agent also learns from channel messages by connected users, adding
-    anything they settle to the team's runbooks as the author.
+    The agent also learns from channel messages, adding anything they settle
+    to the team's runbooks.
     """
     if event.get("bot_id"):
         return
@@ -33,7 +33,7 @@ def handle_message(
     is_dm = event.get("channel_type") == "im"
     is_thread_reply = event.get("thread_ts") is not None
 
-    if not is_dm and context.user_token and event.get("subtype") in LEARNED_SUBTYPES:
+    if not is_dm and event.get("subtype") in LEARNED_SUBTYPES:
         try:
             deps = AgentDeps(
                 client=client,
@@ -80,13 +80,6 @@ def handle_message(
         channel_id = context.channel_id
         text = event.get("text", "")
         thread_ts = event.get("thread_ts") or event["ts"]
-
-        if not context.user_token:
-            say(
-                text="Connect the Slack MCP Server from my Home tab so I can reach your team's runbooks.",
-                thread_ts=thread_ts,
-            )
-            return
 
         user_id = context.user_id
 

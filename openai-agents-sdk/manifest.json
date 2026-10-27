@@ -44,16 +44,19 @@
       ],
       "bot": [
         "app_mentions:read",
+        "assistant:write",
+        "canvases:read",
+        "canvases:write",
         "channels:history",
         "chat:write",
+        "files:read",
         "groups:history",
         "im:history",
         "im:read",
         "im:write",
-        "reactions:write",
         "reactions:read",
-        "users:read",
-        "assistant:write"
+        "reactions:write",
+        "users:read"
       ]
     }
   },

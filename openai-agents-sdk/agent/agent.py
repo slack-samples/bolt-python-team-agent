@@ -2,7 +2,7 @@ from agents import Agent, Runner
 from agents.mcp import MCPServerStreamableHttp, create_static_tool_filter
 
 from agent.deps import AgentDeps
-from agent.tools import add_emoji_reaction
+from agent.tools import add_emoji_reaction, list_runbooks, read_runbook, write_runbook
 
 SYSTEM_PROMPT = """\
 You are a team agent in Slack. You're the glue for a team: you keep its runbooks current \
@@ -26,13 +26,13 @@ and help route the requests and escalations that come in.
 ## RUNBOOKS
 Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the team does \
 something: the steps, who owns it, and who to escalate to.
-- Find runbooks with `slack_search_public_and_private`: use the keyword `Runbook`, set \
-`content_types` to `files`, and pass the current channel as `context_channel_id`.
-- Read a runbook with `slack_read_canvas` before you answer from it.
-- To write a runbook, update the canvas that covers the topic with `slack_update_canvas`, \
-changing only the sections that are new or wrong. If none covers it, create one with \
-`slack_create_canvas` titled `Runbook: <topic>`, with short sections for when to use it, \
-the steps, and who to ask. Share the canvas link.
+- Find the runbooks before you answer or write one, and read the one that covers the \
+topic before you rely on it.
+- To write a runbook, update the one that covers the topic, keeping everything that's \
+still true. If none covers it, create one titled `Runbook: <topic>`, with short sections \
+for when to use it, the steps, and who to ask. Share the runbook's link.
+- With the Slack MCP Server, find runbooks by searching files for the keyword `Runbook`, \
+and read and write them with the canvas tools.
 
 ## TRIAGE
 Treat each request as something to route:
@@ -64,6 +64,13 @@ RUNBOOK_TOOLS = [
 
 SLACK_MCP_URL = "https://mcp.slack.com/mcp"
 
+ERROR_HANDLERS = {
+    "max_turns": lambda _: (
+        f"I used all {MAX_TURNS} steps I get in one turn before finishing. "
+        "Send a message and I'll pick up where I left off."
+    ),
+}
+
 agent = Agent[AgentDeps](
     name="Team Agent",
     instructions=lambda wrapper, agent: (
@@ -72,13 +79,22 @@ agent = Agent[AgentDeps](
         f"You're talking with user `{wrapper.context.user_id}` in channel "
         f"`{wrapper.context.channel_id}`.\n"
     ),
-    tools=[add_emoji_reaction],
+    tools=[add_emoji_reaction, list_runbooks, read_runbook, write_runbook],
     model="gpt-4.1-mini",
 )
 
 
 async def run_agent(input_items, deps):
-    """Run the agent with the Slack MCP Server's runbook tools, as the user."""
+    """Run the agent with its runbook tools, or the Slack MCP Server's when the user connected it."""
+    if not deps.user_token:
+        return await Runner.run(
+            agent,
+            input=input_items,
+            context=deps,
+            max_turns=MAX_TURNS,
+            error_handlers=ERROR_HANDLERS,
+        )
+
     mcp_server = MCPServerStreamableHttp(
         params={
             "url": SLACK_MCP_URL,
@@ -87,16 +103,13 @@ async def run_agent(input_items, deps):
         tool_filter=create_static_tool_filter(allowed_tool_names=RUNBOOK_TOOLS),
     )
     async with mcp_server:
-        agent_with_mcp = agent.clone(mcp_servers=[mcp_server])
+        agent_with_mcp = agent.clone(
+            tools=[add_emoji_reaction], mcp_servers=[mcp_server]
+        )
         return await Runner.run(
             agent_with_mcp,
             input=input_items,
             context=deps,
             max_turns=MAX_TURNS,
-            error_handlers={
-                "max_turns": lambda _: (
-                    f"I used all {MAX_TURNS} steps I get in one turn before finishing. "
-                    "Send a message and I'll pick up where I left off."
-                ),
-            },
+            error_handlers=ERROR_HANDLERS,
         )

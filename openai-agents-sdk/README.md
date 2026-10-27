@@ -9,26 +9,26 @@ The team agent interacts with users through five entry points:
 * **App Home** — Displays a welcome message with instructions on how to interact.
 * **Direct Messages** — Users message the agent directly to find a runbook or triage a request. It responds in-thread, maintaining context across follow-ups.
 * **Channel @mentions** — Mention the agent in a team channel with a request. It answers from a runbook when one covers it, or offers to start one.
-* **Channel messages** — The agent follows along in channels it's a member of. When a connected person's message settles something worth keeping, the agent adds it to the team's runbooks on its own.
+* **Channel messages** — The agent follows along in channels it's a member of. When a message settles something worth keeping, the agent adds it to the team's runbooks on its own.
 * **Assistant Panel** — Users click _Add Agent_ in Slack, select the agent, and pick from suggested prompts or type a message.
 
-Most of what the agent can do comes from the Slack MCP Server. The template also includes one app tool (emoji reactions) that the agent uses to show a request was picked up. Add your own tools to customize it for your use case.
+The agent works with runbooks through three app tools that call the Web API with the bot token: `list_runbooks`, `read_runbook`, and `write_runbook`. When a person has connected the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), the agent uses its runbook tools as that person instead. One more app tool (emoji reactions) shows a request was picked up. Add your own tools to customize it for your use case.
 
 ### Runbooks
 
 Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the team does something: the steps, who owns it, and who to escalate to. Anyone can read and edit them in Slack, and the agent does too:
 
-* **Reading** — When a request comes in, the agent searches for runbooks that cover it and answers from them.
+* **Reading** — When a request comes in, the agent finds the runbook that covers it and answers from it.
 * **Writing on request** — Ask the agent to write or fix a runbook and it updates the canvas that covers the topic, or creates one.
-* **Learning from messages** — The same agent reads each channel message from someone who has connected the Slack MCP Server. If the message fixed a problem, named an owner, made a decision, or corrected a runbook, the agent updates the runbook that covers it, or creates one. Most messages settle nothing worth keeping, and the agent leaves those alone.
+* **Learning from messages** — The same agent reads each channel message. If the message fixed a problem, named an owner, made a decision, or corrected a runbook, the agent updates the runbook that covers it, or creates one. Most messages settle nothing worth keeping, and the agent leaves those alone.
 
 This is the loop the template is built to show: the runbooks the agent writes from messages are the runbooks it answers from next time.
 
-The agent learns with the Slack MCP Server token of the message's author, so the edit shows their name, and it tells them what changed with an ephemeral message only they can see. Nothing is posted to the channel. The agent only gets the Slack MCP tools for runbooks: searching, and reading, creating, or updating canvases. It can't send messages or read threads.
+When the agent changes a runbook, it tells the message's author with an ephemeral message only they can see. Nothing is posted to the channel. New runbooks are added as a tab in the channel they were learned in, so the whole team can read and edit them. The agent only gets runbook tools, so it can't send messages or read threads.
 
 ### Slack MCP Server
 
-The agent reaches your team's runbooks through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), so connect it before you start. When deployed with OAuth (HTTP mode), the agent connects to the Slack MCP Server using the token of the person it's working with. Until someone connects, the agent replies by asking them to connect the Slack MCP Server from its Home tab.
+Connecting the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server) is optional. When deployed with OAuth (HTTP mode), a person who connects it from the Home tab has the agent work with runbooks as them: it finds runbooks with Slack search and reads and writes canvases with their access, so edits show their name. Everyone else gets the bot token's runbook tools.
 
 ## Setup
 
@@ -337,11 +337,11 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 ### `/agent`
 
-The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server. It only gets the Slack MCP tools for runbooks.
+The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. `run_agent()` gives it the bot token's runbook tools, or the Slack MCP Server's runbook tools when the person has connected it.
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
-The `tools` directory contains one example tool (emoji reaction) that the agent can call during a conversation.
+The `tools` directory contains the runbook tools, which call `files.list`, `canvases.getContent`, `canvases.create`, and `canvases.edit` with the bot token, and one example tool (emoji reaction). `canvases.getContent` isn't in `slack_sdk` yet, so `read_runbook` calls it with `client.api_call`.
 
 ### `/thread_context`
 

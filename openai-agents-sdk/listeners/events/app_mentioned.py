@@ -36,13 +36,6 @@ def handle_app_mentioned(
             )
             return
 
-        if not context.user_token:
-            say(
-                text="Connect the Slack MCP Server from my Home tab so I can reach your team's runbooks.",
-                thread_ts=thread_ts,
-            )
-            return
-
         # Set assistant thread status with loading messages
         set_status(
             status="Thinking...",

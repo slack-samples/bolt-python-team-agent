@@ -10,12 +10,13 @@ test_logger = logging.getLogger(__name__)
 
 
 @patch("listeners.events.app_mentioned.run_agent", new_callable=AsyncMock)
-def test_mention_without_user_token_asks_to_connect(run_agent):
+def test_mention_runs_the_agent_without_a_user_token(run_agent):
     context = Mock(BoltContext)
     context.channel_id = "C123"
     context.user_id = "U123"
     context.user_token = None
-    say = Mock()
+    run_agent.return_value = Mock(final_output="Here's the runbook.")
+    say_stream = Mock()
 
     handle_app_mentioned(
         client=Mock(WebClient),
@@ -25,10 +26,14 @@ def test_mention_without_user_token_asks_to_connect(run_agent):
             "ts": "1700000000.000100",
         },
         logger=test_logger,
-        say=say,
-        say_stream=Mock(),
+        say=Mock(),
+        say_stream=say_stream,
         set_status=Mock(),
     )
 
-    run_agent.assert_not_called()
-    assert "Connect the Slack MCP Server" in say.call_args.kwargs["text"]
+    agent_input, deps = run_agent.call_args.args
+    assert agent_input == "is there a runbook for deploys?"
+    assert deps.user_token is None
+    say_stream.return_value.append.assert_called_once_with(
+        markdown_text="Here's the runbook."
+    )

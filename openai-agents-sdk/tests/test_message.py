@@ -108,8 +108,9 @@ class TestMessage:
         assert "test exception" in caplog.text
 
     @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
-    def test_does_not_learn_without_a_user_token(self, run_agent):
+    def test_learns_with_the_bot_token_without_a_user_token(self, run_agent):
         self.fake_context.user_token = None
+        run_agent.return_value = run_result("write_runbook")
 
         self.handle(
             {
@@ -119,7 +120,9 @@ class TestMessage:
             }
         )
 
-        run_agent.assert_not_called()
+        _, deps = run_agent.call_args.args
+        assert deps.user_token is None
+        self.fake_client.chat_postEphemeral.assert_called_once()
 
     @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_does_not_learn_from_edits_or_bots(self, run_agent):
@@ -151,12 +154,3 @@ class TestMessage:
 
         for call in run_agent.call_args_list:
             assert not str(call.args[0]).startswith("Learn from")
-
-    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
-    def test_dm_without_user_token_asks_to_connect(self, run_agent):
-        self.fake_context.user_token = None
-
-        self.handle({"channel_type": "im", "text": "Hi", "ts": "1700000000.000100"})
-
-        run_agent.assert_not_called()
-        assert "Connect the Slack MCP Server" in self.fake_say.call_args.kwargs["text"]
