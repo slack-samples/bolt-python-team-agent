@@ -1,10 +1,10 @@
 import asyncio
 
 from agents import Agent, RunErrorHandlerInput, RunErrorHandlerResult, Runner
+from agents.mcp import MCPServerStreamableHttp, create_static_tool_filter
 from pydantic import BaseModel
 
-from agent.agent import MAX_TURNS
-from agent.slack_mcp import slack_mcp_server
+from agent.agent import MAX_TURNS, SLACK_MCP_URL
 
 RUNBOOK_PROMPT = """\
 You keep a team's runbooks current. Someone asked you to save what a Slack thread figured \
@@ -98,7 +98,13 @@ async def _save_with_mcp(
     channel_id: str, thread_ts: str, permalink: str, topic: str, user_token: str
 ) -> RunbookUpdate:
     """Run the runbook agent with only the Slack MCP tools it needs."""
-    mcp_server = slack_mcp_server(user_token, allowed_tool_names=RUNBOOK_TOOLS)
+    mcp_server = MCPServerStreamableHttp(
+        params={
+            "url": SLACK_MCP_URL,
+            "headers": {"Authorization": f"Bearer {user_token}"},
+        },
+        tool_filter=create_static_tool_filter(allowed_tool_names=RUNBOOK_TOOLS),
+    )
     async with mcp_server:
         keeper = runbook_agent.clone(mcp_servers=[mcp_server])
         result = await Runner.run(

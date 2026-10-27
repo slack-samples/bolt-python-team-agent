@@ -343,8 +343,6 @@ The `runbook_check.py` file defines a small agent with no tools that reads a qui
 
 The `runbook_agent.py` file defines the agent that saves a thread to a runbook when someone clicks _Add to runbook_. It returns a structured `RunbookUpdate` and only has the Slack MCP tools it needs to read threads and edit canvases.
 
-The `slack_mcp.py` file connects either agent to the Slack MCP Server with a user's token.
-
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
 The `tools` directory contains one example tool (emoji reaction) that the agent can call during a conversation.

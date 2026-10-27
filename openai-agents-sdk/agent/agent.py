@@ -8,9 +8,9 @@ from agents import (
     RunErrorHandlerResult,
     Runner,
 )
+from agents.mcp import MCPServerStreamableHttp
 
 from agent.deps import AgentDeps
-from agent.slack_mcp import slack_mcp_server
 from agent.tools import add_emoji_reaction
 
 SYSTEM_PROMPT = """\
@@ -61,6 +61,8 @@ MAX_TURNS = 50
 
 logger = logging.getLogger(__name__)
 
+SLACK_MCP_URL = "https://mcp.slack.com/mcp"
+
 
 def build_instructions(
     wrapper: RunContextWrapper[AgentDeps], agent: Agent[AgentDeps]
@@ -110,7 +112,12 @@ def run_agent(input_items, deps):
 
 async def _run_with_mcp(input_items, deps):
     """Run the agent with the Slack MCP Server connected."""
-    mcp_server = slack_mcp_server(deps.user_token)
+    mcp_server = MCPServerStreamableHttp(
+        params={
+            "url": SLACK_MCP_URL,
+            "headers": {"Authorization": f"Bearer {deps.user_token}"},
+        },
+    )
     async with mcp_server:
         agent_with_mcp = agent.clone(mcp_servers=[mcp_server])
         return await Runner.run(
