@@ -5,10 +5,10 @@ from slack_sdk import WebClient
 
 from agent import AgentDeps, run_agent
 from listeners.views.feedback_builder import build_feedback_blocks
-from runbooks import review_when_settled
+from runbooks import review_message
 from thread_context import conversation_store
 
-THREAD_REPLY_SUBTYPES = {None, "file_share", "thread_broadcast"}
+REVIEWED_SUBTYPES = {None, "file_share", "thread_broadcast"}
 
 
 def handle_message(
@@ -22,8 +22,8 @@ def handle_message(
 ):
     """Handle messages sent to the agent via DM or in threads the bot is part of.
 
-    Channel thread replies also restart a wait, and once the thread goes quiet
-    the agent adds anything it settled to the team's runbooks.
+    Channel messages from connected users are also reviewed, as their author,
+    for anything worth adding to the team's runbooks.
     """
     if event.get("bot_id"):
         return
@@ -31,11 +31,11 @@ def handle_message(
     is_dm = event.get("channel_type") == "im"
     is_thread_reply = event.get("thread_ts") is not None
 
-    if is_thread_reply and not is_dm and event.get("subtype") in THREAD_REPLY_SUBTYPES:
-        review_when_settled(
+    if not is_dm and context.user_token and event.get("subtype") in REVIEWED_SUBTYPES:
+        review_message(
             client=client,
             channel_id=context.channel_id,
-            thread_ts=event["thread_ts"],
+            event=event,
             user_id=context.user_id,
             user_token=context.user_token,
             logger=logger,

@@ -28,40 +28,52 @@ class TestMessage:
             set_status=Mock(),
         )
 
-    @patch("listeners.events.message.review_when_settled")
-    def test_channel_thread_reply_starts_a_runbook_review(self, review_when_settled):
+    @patch("listeners.events.message.review_message")
+    def test_channel_thread_reply_is_reviewed_as_its_author(self, review_message):
+        event = {
+            "channel_type": "channel",
+            "text": "Restarting the worker fixed it",
+            "thread_ts": "1700000000.000100",
+            "ts": "1700000000.000200",
+        }
+
+        self.handle(event)
+
+        review_message.assert_called_once()
+        kwargs = review_message.call_args.kwargs
+        assert kwargs["channel_id"] == "C123"
+        assert kwargs["event"] == event
+        assert kwargs["user_id"] == "U123"
+        assert kwargs["user_token"] == "xoxp-123"
+
+    @patch("listeners.events.message.review_message")
+    def test_top_level_channel_message_is_reviewed(self, review_message):
+        self.handle(
+            {
+                "channel_type": "group",
+                "text": "We decided to deploy on Tuesdays from now on",
+                "ts": "1700000000.000100",
+            }
+        )
+
+        review_message.assert_called_once()
+
+    @patch("listeners.events.message.review_message")
+    def test_broadcast_thread_reply_is_reviewed(self, review_message):
         self.handle(
             {
                 "channel_type": "channel",
-                "text": "Restarting the worker fixed it",
+                "subtype": "thread_broadcast",
+                "text": "Fixed: restarting the worker cleared the queue",
                 "thread_ts": "1700000000.000100",
                 "ts": "1700000000.000200",
             }
         )
 
-        review_when_settled.assert_called_once()
-        kwargs = review_when_settled.call_args.kwargs
-        assert kwargs["channel_id"] == "C123"
-        assert kwargs["thread_ts"] == "1700000000.000100"
-        assert kwargs["user_id"] == "U123"
-        assert kwargs["user_token"] == "xoxp-123"
+        review_message.assert_called_once()
 
-    @patch("listeners.events.message.review_when_settled")
-    def test_top_level_channel_message_is_not_checked(self, review_when_settled):
-        self.handle(
-            {
-                "channel_type": "channel",
-                "text": "Is anyone else seeing deploys fail?",
-                "ts": "1700000000.000100",
-            }
-        )
-
-        review_when_settled.assert_not_called()
-
-    @patch("listeners.events.message.review_when_settled")
-    def test_thread_reply_without_user_token_starts_a_runbook_review(
-        self, review_when_settled
-    ):
+    @patch("listeners.events.message.review_message")
+    def test_message_without_user_token_is_not_reviewed(self, review_message):
         self.fake_context.user_token = None
 
         self.handle(
@@ -73,37 +85,22 @@ class TestMessage:
             }
         )
 
-        review_when_settled.assert_called_once()
+        review_message.assert_not_called()
 
-    @patch("listeners.events.message.review_when_settled")
-    def test_broadcast_thread_reply_starts_a_runbook_review(self, review_when_settled):
-        self.handle(
-            {
-                "channel_type": "channel",
-                "subtype": "thread_broadcast",
-                "text": "Fixed: restarting the worker cleared the queue",
-                "thread_ts": "1700000000.000100",
-                "ts": "1700000000.000200",
-            }
-        )
-
-        review_when_settled.assert_called_once()
-
-    @patch("listeners.events.message.review_when_settled")
-    def test_edited_thread_reply_is_not_checked(self, review_when_settled):
+    @patch("listeners.events.message.review_message")
+    def test_edited_message_is_not_reviewed(self, review_message):
         self.handle(
             {
                 "channel_type": "channel",
                 "subtype": "message_changed",
-                "thread_ts": "1700000000.000100",
                 "ts": "1700000000.000200",
             }
         )
 
-        review_when_settled.assert_not_called()
+        review_message.assert_not_called()
 
-    @patch("listeners.events.message.review_when_settled")
-    def test_dm_thread_reply_is_not_checked(self, review_when_settled):
+    @patch("listeners.events.message.review_message")
+    def test_dm_is_not_reviewed(self, review_message):
         self.handle(
             {
                 "channel_type": "im",
@@ -113,10 +110,10 @@ class TestMessage:
             }
         )
 
-        review_when_settled.assert_not_called()
+        review_message.assert_not_called()
 
-    @patch("listeners.events.message.review_when_settled")
-    def test_bot_reply_is_not_checked(self, review_when_settled):
+    @patch("listeners.events.message.review_message")
+    def test_bot_message_is_not_reviewed(self, review_message):
         self.handle(
             {
                 "bot_id": "B123",
@@ -127,4 +124,4 @@ class TestMessage:
             }
         )
 
-        review_when_settled.assert_not_called()
+        review_message.assert_not_called()

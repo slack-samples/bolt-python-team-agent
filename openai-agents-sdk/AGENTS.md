@@ -4,7 +4,7 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## What This Is
 
-A **Team Agent** for Slack built with Bolt for Python and the **OpenAI Agents SDK**. It keeps a team's runbooks current and helps route requests. Runbooks are Slack canvases titled `Runbook: <topic>` that the agent reads and writes through the Slack MCP Server. When a channel thread goes quiet (`runbooks/`), the same agent reviews it with the last connected replier's token, a restricted set of Slack MCP tools, and a search guardrail (`agent/guardrails.py`), and adds anything the thread settled to a runbook. It includes one app tool (emoji reactions).
+A **Team Agent** for Slack built with Bolt for Python and the **OpenAI Agents SDK**. It keeps a team's runbooks current and helps route requests. Runbooks are Slack canvases titled `Runbook: <topic>` that the agent reads and writes through the Slack MCP Server. Each channel message from a connected user is reviewed by the same agent (`runbooks/`) with the author's token, a restricted set of Slack MCP tools, and a search guardrail (`agent/guardrails.py`), and anything it settled is added to a runbook. It includes one app tool (emoji reactions).
 
 ## Slack Plugin
 

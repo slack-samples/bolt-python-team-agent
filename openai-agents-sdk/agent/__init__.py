@@ -1,4 +1,4 @@
-from .agent import agent, review_thread, run_agent
+from .agent import agent, run_agent, run_review
 from .deps import AgentDeps
 
-__all__ = ["AgentDeps", "agent", "review_thread", "run_agent"]
+__all__ = ["AgentDeps", "agent", "run_agent", "run_review"]

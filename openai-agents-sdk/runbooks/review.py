@@ -1,45 +1,18 @@
-import os
 from logging import Logger
 
 from agents import RunResult, ToolCallItem
 from slack_sdk import WebClient
 
-from agent import AgentDeps, review_thread
-
-from .watch import ThreadWatch
-
-DEFAULT_SETTLE_SECONDS = 300
+from agent import AgentDeps, run_review
 
 RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas"}
 
-thread_watch = ThreadWatch()
-
-
-def review_when_settled(
-    client: WebClient,
-    channel_id: str,
-    thread_ts: str,
-    user_id: str,
-    user_token: str | None,
-    logger: Logger,
-) -> None:
-    """Add what a thread settled to the runbooks once it has been quiet for a while."""
-    thread_watch.observe(
-        channel_id,
-        thread_ts,
-        delay=float(os.environ.get("RUNBOOK_SETTLE_SECONDS", DEFAULT_SETTLE_SECONDS)),
-        user_id=user_id,
-        user_token=user_token,
-        on_settled=lambda settled_user_id, settled_user_token: review_settled_thread(
-            client, channel_id, thread_ts, settled_user_id, settled_user_token, logger
-        ),
-    )
-
 
 def build_review_input(messages: list[dict], permalink: str) -> str:
-    """Write out a quiet thread with who said what."""
+    """Write out a thread with who said what, ending with the new message."""
     lines = [
-        "This thread just went quiet. Add anything it settled to the team's runbooks.",
+        "A new message was posted. If it settles something a runbook should hold, add it.",
+        "Earlier messages in the thread are context.",
         f"Link: {permalink}",
         "",
     ]
@@ -58,35 +31,38 @@ def changed_a_runbook(result: RunResult) -> bool:
     )
 
 
-def review_settled_thread(
+def review_message(
     client: WebClient,
     channel_id: str,
-    thread_ts: str,
+    event: dict,
     user_id: str,
     user_token: str,
     logger: Logger,
 ) -> None:
-    """Write what a quiet thread settled to a runbook and tell the person it ran as."""
+    """Add what a channel message settled to a runbook, acting as its author."""
     try:
-        replies = client.conversations_replies(channel=channel_id, ts=thread_ts)
-        permalink = client.chat_getPermalink(channel=channel_id, message_ts=thread_ts)
+        thread_ts = event.get("thread_ts") or event["ts"]
+        replies = client.conversations_replies(
+            channel=channel_id, ts=thread_ts, latest=event["ts"], inclusive=True
+        )
+        permalink = client.chat_getPermalink(channel=channel_id, message_ts=event["ts"])
         deps = AgentDeps(
             client=client,
             user_id=user_id,
             channel_id=channel_id,
             thread_ts=thread_ts,
-            message_ts=thread_ts,
+            message_ts=event["ts"],
             user_token=user_token,
         )
-        result = review_thread(
+        result = run_review(
             build_review_input(replies["messages"], permalink["permalink"]), deps
         )
         if changed_a_runbook(result):
             client.chat_postEphemeral(
                 channel=channel_id,
                 user=user_id,
-                thread_ts=thread_ts,
+                thread_ts=event.get("thread_ts"),
                 markdown_text=result.final_output,
             )
     except Exception:
-        logger.exception("Failed to review thread for runbook updates")
+        logger.exception("Failed to review message for runbook updates")
