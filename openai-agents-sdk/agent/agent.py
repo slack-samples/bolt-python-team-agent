@@ -1,10 +1,7 @@
-import asyncio
-
 from agents import Agent, Runner
 from agents.mcp import MCPServerStreamableHttp, create_static_tool_filter
 
 from agent.deps import AgentDeps
-from agent.guardrails import runbook_searches_only
 from agent.tools import add_emoji_reaction
 
 SYSTEM_PROMPT = """\
@@ -80,7 +77,7 @@ agent = Agent[AgentDeps](
 )
 
 
-async def _run_with_mcp(input_items, deps):
+async def run_agent(input_items, deps):
     """Run the agent with the Slack MCP Server's runbook tools, as the user."""
     mcp_server = MCPServerStreamableHttp(
         params={
@@ -88,7 +85,6 @@ async def _run_with_mcp(input_items, deps):
             "headers": {"Authorization": f"Bearer {deps.user_token}"},
         },
         tool_filter=create_static_tool_filter(allowed_tool_names=RUNBOOK_TOOLS),
-        tool_input_guardrails=[runbook_searches_only],
     )
     async with mcp_server:
         agent_with_mcp = agent.clone(mcp_servers=[mcp_server])
@@ -104,8 +100,3 @@ async def _run_with_mcp(input_items, deps):
                 ),
             },
         )
-
-
-def run_agent(input_items, deps):
-    """Run the agent with the Slack MCP Server connected as the user."""
-    return asyncio.run(_run_with_mcp(input_items, deps))

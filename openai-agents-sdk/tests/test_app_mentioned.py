@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from slack_bolt import BoltContext
 from slack_sdk import WebClient
@@ -9,7 +9,7 @@ from listeners.events.app_mentioned import handle_app_mentioned
 test_logger = logging.getLogger(__name__)
 
 
-@patch("listeners.events.app_mentioned.run_agent")
+@patch("listeners.events.app_mentioned.run_agent", new_callable=AsyncMock)
 def test_mention_without_user_token_asks_to_connect(run_agent):
     context = Mock(BoltContext)
     context.channel_id = "C123"

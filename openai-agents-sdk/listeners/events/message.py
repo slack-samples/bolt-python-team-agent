@@ -1,3 +1,4 @@
+import asyncio
 from logging import Logger
 
 from slack_bolt import BoltContext, Say, SayStream, SetStatus
@@ -42,8 +43,10 @@ def handle_message(
                 message_ts=event["ts"],
                 user_token=context.user_token,
             )
-            result = run_agent(
-                f"Learn from this channel message:\n\n{event.get('text', '')}", deps
+            result = asyncio.run(
+                run_agent(
+                    f"Learn from this channel message:\n\n{event.get('text', '')}", deps
+                )
             )
             if any(
                 getattr(item.raw_item, "name", None) in RUNBOOK_WRITES
@@ -117,7 +120,7 @@ def handle_message(
             message_ts=event["ts"],
             user_token=context.user_token,
         )
-        result = run_agent(input_items, deps)
+        result = asyncio.run(run_agent(input_items, deps))
 
         # Stream response in thread with feedback buttons
         streamer = say_stream()

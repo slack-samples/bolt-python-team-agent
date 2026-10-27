@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from agents import RunResult
 from slack_bolt import BoltContext
@@ -39,7 +39,7 @@ class TestMessage:
             set_status=Mock(),
         )
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_learns_from_a_channel_message_as_its_author(self, run_agent):
         run_agent.return_value = run_result("slack_update_canvas")
 
@@ -62,7 +62,7 @@ class TestMessage:
         assert kwargs["thread_ts"] == "1700000000.000100"
         assert "Runbook: Deploys" in kwargs["markdown_text"]
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_stays_quiet_when_no_runbook_changed(self, run_agent):
         run_agent.return_value = run_result("slack_search_public_and_private")
 
@@ -77,7 +77,7 @@ class TestMessage:
         run_agent.assert_called_once()
         self.fake_client.chat_postEphemeral.assert_not_called()
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_learns_from_broadcast_thread_replies(self, run_agent):
         run_agent.return_value = run_result()
 
@@ -93,7 +93,7 @@ class TestMessage:
 
         run_agent.assert_called_once()
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_logs_learning_errors(self, run_agent, caplog):
         run_agent.side_effect = Exception("test exception")
 
@@ -107,7 +107,7 @@ class TestMessage:
 
         assert "test exception" in caplog.text
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_does_not_learn_without_a_user_token(self, run_agent):
         self.fake_context.user_token = None
 
@@ -121,7 +121,7 @@ class TestMessage:
 
         run_agent.assert_not_called()
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_does_not_learn_from_edits_or_bots(self, run_agent):
         self.handle(
             {
@@ -141,7 +141,7 @@ class TestMessage:
 
         run_agent.assert_not_called()
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_does_not_learn_from_dms(self, run_agent):
         run_agent.return_value = run_result()
 
@@ -152,7 +152,7 @@ class TestMessage:
         for call in run_agent.call_args_list:
             assert not str(call.args[0]).startswith("Learn from")
 
-    @patch("listeners.events.message.run_agent")
+    @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_dm_without_user_token_asks_to_connect(self, run_agent):
         self.fake_context.user_token = None
 

@@ -24,7 +24,7 @@ Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the te
 
 This is the loop the template is built to show: the runbooks the agent writes from messages are the runbooks it answers from next time.
 
-The agent learns with the Slack MCP Server token of the message's author, so the edit shows their name, and it tells them what changed with an ephemeral message only they can see. Nothing is posted to the channel. The agent only gets the Slack MCP tools for runbooks: searching, and reading, creating, or updating canvases. A guardrail rejects any search that isn't for `Runbook` files, so it can't send messages, read threads, or search DMs.
+The agent learns with the Slack MCP Server token of the message's author, so the edit shows their name, and it tells them what changed with an ephemeral message only they can see. Nothing is posted to the channel. The agent only gets the Slack MCP tools for runbooks: searching, and reading, creating, or updating canvases. It can't send messages or read threads.
 
 ### Slack MCP Server
 
@@ -338,8 +338,6 @@ Every incoming request is routed to a "listener". This directory groups each lis
 ### `/agent`
 
 The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server. It only gets the Slack MCP tools for runbooks.
-
-The `guardrails.py` file defines a tool input guardrail that keeps the agent's searches to runbook files.
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
