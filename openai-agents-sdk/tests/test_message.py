@@ -28,8 +28,8 @@ class TestMessage:
             set_status=Mock(),
         )
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_channel_thread_reply_starts_a_runbook_check(self, suggest_when_settled):
+    @patch("listeners.events.message.review_when_settled")
+    def test_channel_thread_reply_starts_a_runbook_review(self, review_when_settled):
         self.handle(
             {
                 "channel_type": "channel",
@@ -39,13 +39,15 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_called_once()
-        kwargs = suggest_when_settled.call_args.kwargs
+        review_when_settled.assert_called_once()
+        kwargs = review_when_settled.call_args.kwargs
         assert kwargs["channel_id"] == "C123"
         assert kwargs["thread_ts"] == "1700000000.000100"
+        assert kwargs["user_id"] == "U123"
+        assert kwargs["user_token"] == "xoxp-123"
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_top_level_channel_message_is_not_checked(self, suggest_when_settled):
+    @patch("listeners.events.message.review_when_settled")
+    def test_top_level_channel_message_is_not_checked(self, review_when_settled):
         self.handle(
             {
                 "channel_type": "channel",
@@ -54,11 +56,11 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_not_called()
+        review_when_settled.assert_not_called()
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_thread_reply_without_user_token_starts_a_runbook_check(
-        self, suggest_when_settled
+    @patch("listeners.events.message.review_when_settled")
+    def test_thread_reply_without_user_token_starts_a_runbook_review(
+        self, review_when_settled
     ):
         self.fake_context.user_token = None
 
@@ -71,10 +73,10 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_called_once()
+        review_when_settled.assert_called_once()
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_broadcast_thread_reply_starts_a_runbook_check(self, suggest_when_settled):
+    @patch("listeners.events.message.review_when_settled")
+    def test_broadcast_thread_reply_starts_a_runbook_review(self, review_when_settled):
         self.handle(
             {
                 "channel_type": "channel",
@@ -85,10 +87,10 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_called_once()
+        review_when_settled.assert_called_once()
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_edited_thread_reply_is_not_checked(self, suggest_when_settled):
+    @patch("listeners.events.message.review_when_settled")
+    def test_edited_thread_reply_is_not_checked(self, review_when_settled):
         self.handle(
             {
                 "channel_type": "channel",
@@ -98,10 +100,10 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_not_called()
+        review_when_settled.assert_not_called()
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_dm_thread_reply_is_not_checked(self, suggest_when_settled):
+    @patch("listeners.events.message.review_when_settled")
+    def test_dm_thread_reply_is_not_checked(self, review_when_settled):
         self.handle(
             {
                 "channel_type": "im",
@@ -111,10 +113,10 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_not_called()
+        review_when_settled.assert_not_called()
 
-    @patch("listeners.events.message.suggest_when_settled")
-    def test_bot_reply_is_not_checked(self, suggest_when_settled):
+    @patch("listeners.events.message.review_when_settled")
+    def test_bot_reply_is_not_checked(self, review_when_settled):
         self.handle(
             {
                 "bot_id": "B123",
@@ -125,4 +127,4 @@ class TestMessage:
             }
         )
 
-        suggest_when_settled.assert_not_called()
+        review_when_settled.assert_not_called()

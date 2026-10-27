@@ -9,7 +9,7 @@ The team agent interacts with users through five entry points:
 * **App Home** — Displays a welcome message with instructions on how to interact.
 * **Direct Messages** — Users message the agent directly to find a runbook or triage a request. It responds in-thread, maintaining context across follow-ups.
 * **Channel @mentions** — Mention the agent in a team channel with a request. It answers from a runbook when one covers it, or points to who can help.
-* **Channel threads** — The agent follows threads in channels it's a member of. Once a thread goes quiet, it checks whether the thread settled something worth keeping and offers to save it to a runbook.
+* **Channel threads** — The agent follows threads in channels it's a member of. Once a thread goes quiet, it adds anything the thread settled to the team's runbooks on its own.
 * **Assistant Panel** — Users click _Add Agent_ in Slack, select the agent, and pick from suggested prompts or type a message.
 
 Most of what the agent can do comes from the Slack MCP Server. The template also includes one app tool (emoji reactions) that the agent uses to show a request was picked up. Add your own tools to customize it for your use case.
@@ -20,9 +20,11 @@ Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the te
 
 * **Reading** — When a request comes in, the agent searches for runbooks that cover it and answers from them.
 * **Writing on request** — Ask the agent to write or fix a runbook and it updates the canvas that covers the topic, or creates one.
-* **Writing as threads wrap up** — Each reply in a channel thread restarts a quiet period (5 minutes by default, set with `RUNBOOK_SETTLE_SECONDS`). When the quiet period ends, the agent reads the thread with its bot token and checks whether it fixed a problem, named an owner, or corrected how the team does something. If so, it posts an _Add to runbook_ button in the thread. Most threads aren't worth saving, and the agent stays quiet for those.
+* **Learning from threads** — Each reply in a channel thread restarts a quiet period (5 minutes by default, set with `RUNBOOK_SETTLE_SECONDS`). When the quiet period ends, the same agent reads the thread. If the thread fixed a problem, named an owner, or corrected a runbook, the agent updates the runbook that covers it, or creates one. Most threads settle nothing worth keeping, and the agent leaves those alone.
 
-Clicking _Add to runbook_ saves the thread as the person who clicked: the agent uses their Slack MCP Server token to update the runbook that covers the topic, or to create one, and replaces the button with a link to what changed. The edit shows their name, and nothing is written until someone asks. While saving, the agent can only read the thread, search, and read, create, or update canvases. It can't send messages.
+This is the loop the template is built to show: the runbooks the agent writes from threads are the runbooks it answers from next time.
+
+The review runs with the Slack MCP Server token of the last connected person to reply in the thread, so the edit shows their name, and the agent tells them what changed with an ephemeral message only they can see. Nothing is posted to the channel. While reviewing, the agent can only search for runbooks and read, create, or update canvases: a guardrail rejects any search that isn't for `Runbook` files in public or private channels, and the agent can't send messages or read DMs.
 
 ### Slack MCP Server
 
@@ -286,7 +288,7 @@ Once the agent is running, there are several ways to interact:
 
 **Channel @mentions** — Invite the agent to your team channel by typing `/invite @agent-name` in the message box, then @mention it followed by your request. The agent responds in a thread so the channel stays clean.
 
-**Channel threads** — Talk through a problem in a thread in your team channel. Once the thread goes quiet, the agent offers to save what you figured out. Click _Add to runbook_ and it updates or creates the runbook as you. Set `RUNBOOK_SETTLE_SECONDS=30` in `.env` to try this without waiting.
+**Channel threads** — Talk through a problem in a thread in your team channel. Once the thread goes quiet, the agent adds what you figured out to a runbook and sends you an ephemeral note with the link. Ask about the same problem later and it answers from that runbook. Set `RUNBOOK_SETTLE_SECONDS=30` in `.env` to try this without waiting.
 
 **Assistant Panel** — Click _Add Agent_ in the top-right corner of Slack, select the agent from the list, then pick a suggested prompt or type a message.
 
@@ -322,26 +324,22 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 - `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
 - `app_mentioned.py` — Responds to @mentions in channels.
-- `message.py` — Responds to direct messages and restarts the runbook check for channel thread replies.
+- `message.py` — Responds to direct messages and restarts the runbook review for channel thread replies.
 
 **`/listeners/actions`** — Handles interactive components:
 
-- `add_to_runbook.py` — Saves a thread to a runbook as the person who clicked _Add to runbook_.
 - `feedback_buttons.py` — Handles thumbs up/down feedback on agent responses.
 
 **`/listeners/views`** — Builds Block Kit views:
 
 - `app_home_builder.py` — Constructs the App Home Block Kit view.
 - `feedback_builder.py` — Creates the feedback button block attached to responses.
-- `runbook_suggestion_builder.py` — Builds the _Add to runbook_ offer posted in quiet threads.
 
 ### `/agent`
 
-The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server.
+The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server. `run_agent()` answers requests, and `review_thread()` runs the same agent on a quiet thread with only the Slack MCP tools it needs to write runbooks.
 
-The `runbook_check.py` file defines a small agent with no tools that reads a quiet thread and returns a structured `RunbookCheck`: whether the thread is worth saving, and its topic.
-
-The `runbook_agent.py` file defines the agent that saves a thread to a runbook when someone clicks _Add to runbook_. It returns a structured `RunbookUpdate` and only has the Slack MCP tools it needs to read threads and edit canvases.
+The `guardrails.py` file defines a tool input guardrail that keeps thread reviews searching only for runbook files in channels.
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
@@ -349,7 +347,7 @@ The `tools` directory contains one example tool (emoji reaction) that the agent 
 
 ### `/runbooks`
 
-The `watch.py` file waits for a thread to go quiet, restarting the wait with each new reply. The `suggest.py` file runs the runbook check once a thread settles and posts the _Add to runbook_ offer when the thread is worth saving.
+The `watch.py` file waits for a thread to go quiet, restarting the wait with each new reply and remembering the last connected person to reply. The `review.py` file runs the thread review once a thread settles and sends that person an ephemeral note when a runbook changed.
 
 ### `/thread_context`
 
