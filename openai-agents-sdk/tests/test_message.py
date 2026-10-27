@@ -110,7 +110,7 @@ class TestMessage:
     @patch("listeners.events.message.run_agent", new_callable=AsyncMock)
     def test_learns_with_the_bot_token_without_a_user_token(self, run_agent):
         self.fake_context.user_token = None
-        run_agent.return_value = run_result("write_runbook")
+        run_agent.return_value = run_result("create_runbook")
 
         self.handle(
             {

@@ -4,7 +4,7 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## What This Is
 
-A **Team Agent** for Slack built with Bolt for Python and the **OpenAI Agents SDK**. It keeps a team's runbooks current and helps route requests. Runbooks are Slack canvases titled `Runbook: <topic>`. The agent reads and writes them with bot-token tools in `agent/tools/` (`files.list`, `canvases.getContent`, `canvases.create`, `canvases.edit`), or with the Slack MCP Server's runbook tools when the person has connected it. The same agent learns from each channel message (`listeners/events/message.py`), adding anything it settles to a runbook. It also includes one app tool (emoji reactions).
+A **Team Agent** for Slack built with Bolt for Python and the **OpenAI Agents SDK**. It keeps a team's runbooks current and helps route requests. Runbooks are Slack canvases titled `Runbook: <topic>`. With the bot token, the agent lists, reads, and creates them with tools in `agent/tools/` (`files.list`, `canvases.getContent`, `canvases.create`). When the person has connected the Slack MCP Server, it uses the MCP runbook tools instead, which can also edit runbooks. The same agent learns from each channel message (`listeners/events/message.py`), adding anything it settles to a runbook. It also includes one app tool (emoji reactions).
 
 ## Slack Plugin
 

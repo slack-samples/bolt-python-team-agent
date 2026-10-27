@@ -9,8 +9,7 @@ from agent.deps import AgentDeps
 async def read_runbook(wrapper: RunContextWrapper[AgentDeps], canvas_id: str) -> str:
     """Read a runbook's content as markdown.
 
-    Read a runbook before you answer from it, and before you rewrite it with
-    `write_runbook`.
+    Read a runbook before you answer from it.
 
     Args:
         canvas_id: The runbook's canvas ID from `list_runbooks`, such as `F0123ABCD`.

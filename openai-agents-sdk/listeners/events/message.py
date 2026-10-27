@@ -10,7 +10,7 @@ from thread_context import conversation_store
 
 LEARNED_SUBTYPES = {None, "file_share", "thread_broadcast"}
 
-RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas", "write_runbook"}
+RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas", "create_runbook"}
 
 
 def handle_message(

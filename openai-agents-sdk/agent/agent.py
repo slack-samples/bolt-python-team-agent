@@ -2,7 +2,12 @@ from agents import Agent, Runner
 from agents.mcp import MCPServerStreamableHttp, create_static_tool_filter
 
 from agent.deps import AgentDeps
-from agent.tools import add_emoji_reaction, list_runbooks, read_runbook, write_runbook
+from agent.tools import (
+    add_emoji_reaction,
+    create_runbook,
+    list_runbooks,
+    read_runbook,
+)
 
 SYSTEM_PROMPT = """\
 You are a team agent in Slack. You're the glue for a team: you keep its runbooks current \
@@ -31,6 +36,8 @@ topic before you rely on it.
 - To write a runbook, update the one that covers the topic, keeping everything that's \
 still true. If none covers it, create one titled `Runbook: <topic>`, with short sections \
 for when to use it, the steps, and who to ask. Share the runbook's link.
+- If you can't edit runbooks, never create a second runbook for a topic that already has \
+one.
 - With the Slack MCP Server, find runbooks by searching files for the keyword `Runbook`, \
 and read and write them with the canvas tools.
 
@@ -79,7 +86,7 @@ agent = Agent[AgentDeps](
         f"You're talking with user `{wrapper.context.user_id}` in channel "
         f"`{wrapper.context.channel_id}`.\n"
     ),
-    tools=[add_emoji_reaction, list_runbooks, read_runbook, write_runbook],
+    tools=[add_emoji_reaction, create_runbook, list_runbooks, read_runbook],
     model="gpt-4.1-mini",
 )
 

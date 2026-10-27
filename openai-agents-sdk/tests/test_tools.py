@@ -7,7 +7,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from agent.deps import AgentDeps
-from agent.tools import list_runbooks, read_runbook, write_runbook
+from agent.tools import create_runbook, list_runbooks, read_runbook
 
 
 def slack_error(error: str, detail: str | None = None) -> SlackApiError:
@@ -88,11 +88,11 @@ class TestTools:
 
         assert "canvas_not_found" in result
 
-    def test_write_runbook_creates_a_channel_tab(self):
+    def test_create_runbook_adds_a_channel_tab(self):
         self.client.canvases_create.return_value = {"canvas_id": "F123"}
 
         result = invoke(
-            write_runbook, self.deps, topic="Deploys", markdown="# Steps\n1. Redeploy"
+            create_runbook, self.deps, topic="Deploys", markdown="# Steps\n1. Redeploy"
         )
 
         kwargs = self.client.canvases_create.call_args.kwargs
@@ -102,33 +102,18 @@ class TestTools:
             "type": "markdown",
             "markdown": "# Steps\n1. Redeploy",
         }
-        self.client.canvases_edit.assert_not_called()
+        self.client.files_info.assert_called_once_with(file="F123")
         assert (
             result
-            == "Wrote [Runbook: Deploys](https://example.slack.com/docs/T1/F123)."
+            == "Created [Runbook: Deploys](https://example.slack.com/docs/T1/F123)."
         )
 
-    def test_write_runbook_replaces_an_existing_runbook(self):
-        result = invoke(
-            write_runbook,
-            self.deps,
-            topic="Deploys",
-            markdown="# Steps\n1. Rotate the secret\n2. Redeploy",
-            canvas_id="F123",
-        )
-
-        kwargs = self.client.canvases_edit.call_args.kwargs
-        assert kwargs["canvas_id"] == "F123"
-        assert kwargs["changes"][0]["operation"] == "replace"
-        self.client.canvases_create.assert_not_called()
-        assert "Runbook: Deploys" in result
-
-    def test_write_runbook_asks_to_fix_rejected_markdown(self):
+    def test_create_runbook_asks_to_fix_rejected_markdown(self):
         self.client.canvases_create.side_effect = slack_error(
             "canvas_creation_failed", "Unsupported nested list"
         )
 
-        result = invoke(write_runbook, self.deps, topic="Deploys", markdown="1. - x")
+        result = invoke(create_runbook, self.deps, topic="Deploys", markdown="1. - x")
 
         assert "Unsupported nested list" in result
-        assert "call write_runbook again" in result
+        assert "call create_runbook again" in result
