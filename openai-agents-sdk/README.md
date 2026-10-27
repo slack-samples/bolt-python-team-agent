@@ -8,7 +8,7 @@ The team agent interacts with users through five entry points:
 
 * **App Home** — Displays a welcome message with instructions on how to interact.
 * **Direct Messages** — Users message the agent directly to find a runbook or triage a request. It responds in-thread, maintaining context across follow-ups.
-* **Channel @mentions** — Mention the agent in a team channel with a request. It answers from a runbook when one covers it, or points to who can help.
+* **Channel @mentions** — Mention the agent in a team channel with a request. It answers from a runbook when one covers it, or offers to start one.
 * **Channel messages** — The agent follows along in channels it's a member of. When a connected person's message settles something worth keeping, the agent adds it to the team's runbooks on its own.
 * **Assistant Panel** — Users click _Add Agent_ in Slack, select the agent, and pick from suggested prompts or type a message.
 
@@ -20,11 +20,11 @@ Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the te
 
 * **Reading** — When a request comes in, the agent searches for runbooks that cover it and answers from them.
 * **Writing on request** — Ask the agent to write or fix a runbook and it updates the canvas that covers the topic, or creates one.
-* **Learning from messages** — Each channel message from someone who has connected the Slack MCP Server gets one review by the same agent, with the rest of its thread as context. If the message fixed a problem, named an owner, made a decision, or corrected a runbook, the agent updates the runbook that covers it, or creates one. Most messages settle nothing worth keeping, and the agent leaves those alone.
+* **Learning from messages** — The same agent reads each channel message from someone who has connected the Slack MCP Server. If the message fixed a problem, named an owner, made a decision, or corrected a runbook, the agent updates the runbook that covers it, or creates one. Most messages settle nothing worth keeping, and the agent leaves those alone.
 
 This is the loop the template is built to show: the runbooks the agent writes from messages are the runbooks it answers from next time.
 
-The review runs with the Slack MCP Server token of the message's author, so the edit shows their name, and the agent tells them what changed with an ephemeral message only they can see. Nothing is posted to the channel. While reviewing, the agent can only search for runbooks and read, create, or update canvases: a guardrail rejects any search that isn't for `Runbook` files, and the agent can't send messages or read other threads.
+The agent learns with the Slack MCP Server token of the message's author, so the edit shows their name, and it tells them what changed with an ephemeral message only they can see. Nothing is posted to the channel. The agent only gets the Slack MCP tools for runbooks: searching, and reading, creating, or updating canvases. A guardrail rejects any search that isn't for `Runbook` files, so it can't send messages, read threads, or search DMs.
 
 ### Slack MCP Server
 
@@ -324,7 +324,7 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 - `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
 - `app_mentioned.py` — Responds to @mentions in channels.
-- `message.py` — Responds to direct messages and restarts the runbook review for channel thread replies.
+- `message.py` — Responds to direct messages and learns from channel messages by connected users.
 
 **`/listeners/actions`** — Handles interactive components:
 
@@ -337,17 +337,13 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 ### `/agent`
 
-The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server. `run_agent()` answers requests, and `run_review()` runs the same agent on a channel message with only the Slack MCP tools it needs to write runbooks.
+The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. It finds, reads, and writes runbooks through the Slack MCP Server. It only gets the Slack MCP tools for runbooks.
 
-The `guardrails.py` file defines a tool input guardrail that keeps thread reviews searching only for runbook files.
+The `guardrails.py` file defines a tool input guardrail that keeps the agent's searches to runbook files.
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
 The `tools` directory contains one example tool (emoji reaction) that the agent can call during a conversation.
-
-### `/runbooks`
-
-The `review.py` file reviews a channel message with its thread as context, acting as the message's author, and sends them an ephemeral note when a runbook changed.
 
 ### `/thread_context`
 

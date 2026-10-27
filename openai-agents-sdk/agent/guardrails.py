@@ -9,7 +9,7 @@ from agents import (
 
 @tool_input_guardrail
 def runbook_searches_only(data: ToolInputGuardrailData) -> ToolGuardrailFunctionOutput:
-    """Let a message review search for runbook files and nothing else."""
+    """Let the agent search for runbook files and nothing else."""
     if data.context.tool_name != "slack_search_public_and_private":
         return ToolGuardrailFunctionOutput.allow()
     arguments = json.loads(data.context.tool_arguments)

@@ -5,10 +5,11 @@ from slack_sdk import WebClient
 
 from agent import AgentDeps, run_agent
 from listeners.views.feedback_builder import build_feedback_blocks
-from runbooks import review_message
 from thread_context import conversation_store
 
-REVIEWED_SUBTYPES = {None, "file_share", "thread_broadcast"}
+LEARNED_SUBTYPES = {None, "file_share", "thread_broadcast"}
+
+RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas"}
 
 
 def handle_message(
@@ -22,8 +23,8 @@ def handle_message(
 ):
     """Handle messages sent to the agent via DM or in threads the bot is part of.
 
-    Channel messages from connected users are also reviewed, as their author,
-    for anything worth adding to the team's runbooks.
+    The agent also learns from channel messages by connected users, adding
+    anything they settle to the team's runbooks as the author.
     """
     if event.get("bot_id"):
         return
@@ -31,15 +32,31 @@ def handle_message(
     is_dm = event.get("channel_type") == "im"
     is_thread_reply = event.get("thread_ts") is not None
 
-    if not is_dm and context.user_token and event.get("subtype") in REVIEWED_SUBTYPES:
-        review_message(
-            client=client,
-            channel_id=context.channel_id,
-            event=event,
-            user_id=context.user_id,
-            user_token=context.user_token,
-            logger=logger,
-        )
+    if not is_dm and context.user_token and event.get("subtype") in LEARNED_SUBTYPES:
+        try:
+            deps = AgentDeps(
+                client=client,
+                user_id=context.user_id,
+                channel_id=context.channel_id,
+                thread_ts=event.get("thread_ts") or event["ts"],
+                message_ts=event["ts"],
+                user_token=context.user_token,
+            )
+            result = run_agent(
+                f"Learn from this channel message:\n\n{event.get('text', '')}", deps
+            )
+            if any(
+                getattr(item.raw_item, "name", None) in RUNBOOK_WRITES
+                for item in result.new_items
+            ):
+                client.chat_postEphemeral(
+                    channel=context.channel_id,
+                    user=context.user_id,
+                    thread_ts=event.get("thread_ts"),
+                    markdown_text=result.final_output,
+                )
+        except Exception:
+            logger.exception("Failed to learn from message")
 
     # Skip message subtypes (edits, deletes, etc.).
     if event.get("subtype"):
