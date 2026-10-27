@@ -125,3 +125,21 @@ class TestMessage:
         )
 
         review_message.assert_not_called()
+
+    @patch("listeners.events.message.run_agent")
+    def test_dm_without_user_token_asks_to_connect(self, run_agent):
+        self.fake_context.user_token = None
+        say = Mock()
+
+        handle_message(
+            client=self.fake_client,
+            context=self.fake_context,
+            event={"channel_type": "im", "text": "Hi", "ts": "1700000000.000100"},
+            logger=test_logger,
+            say=say,
+            say_stream=Mock(),
+            set_status=Mock(),
+        )
+
+        run_agent.assert_not_called()
+        assert "Connect the Slack MCP Server" in say.call_args.kwargs["text"]

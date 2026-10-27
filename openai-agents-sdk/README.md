@@ -28,7 +28,7 @@ The review runs with the Slack MCP Server token of the message's author, so the 
 
 ### Slack MCP Server
 
-The agent reaches your team's runbooks through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), so connect it before you start. When deployed with OAuth (HTTP mode), the agent connects to the Slack MCP Server using the token of the person it's working with. Without it, the agent can still chat but can't read or write runbooks.
+The agent reaches your team's runbooks through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), so connect it before you start. When deployed with OAuth (HTTP mode), the agent connects to the Slack MCP Server using the token of the person it's working with. Until someone connects, the agent replies by asking them to connect the Slack MCP Server from its Home tab.
 
 ## Setup
 

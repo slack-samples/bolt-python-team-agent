@@ -61,6 +61,13 @@ def handle_message(
         text = event.get("text", "")
         thread_ts = event.get("thread_ts") or event["ts"]
 
+        if not context.user_token:
+            say(
+                text="Connect the Slack MCP Server from my Home tab so I can reach your team's runbooks.",
+                thread_ts=thread_ts,
+            )
+            return
+
         user_id = context.user_id
 
         # Get conversation history
