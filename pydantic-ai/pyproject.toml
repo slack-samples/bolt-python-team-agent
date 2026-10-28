@@ -1,5 +1,5 @@
 [project]
-name = "bolt-python-support-agent-pydantic"
+name = "bolt-python-team-agent-pydantic-ai"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,7 +15,7 @@ test = [
     "pytest==9.1.1",
 ]
 dev = [
-    "bolt-python-support-agent-pydantic[test]",
+    "bolt-python-team-agent-pydantic-ai[test]",
     "ruff==0.17.2",
 ]
 
