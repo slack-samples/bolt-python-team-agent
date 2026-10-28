@@ -94,8 +94,6 @@ agent = Agent[AgentDeps](
 
 async def run_agent(input_items, deps):
     """Run the agent with its runbook tools, or the Slack MCP Server's when the user connected it."""
-    # Each run starts a new event loop with asyncio.run, so give it an OpenAI client of its
-    # own. The SDK's default client is shared and stays bound to the loop that first used it.
     async with AsyncOpenAI() as openai_client:
         run_config = RunConfig(
             model_provider=OpenAIProvider(openai_client=openai_client)
