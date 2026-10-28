@@ -1,3 +1,4 @@
+import asyncio
 from logging import Logger
 
 from slack_bolt import BoltContext, Say, SayStream, SetStatus
@@ -6,6 +7,10 @@ from slack_sdk import WebClient
 from agent import AgentDeps, run_agent
 from listeners.views.feedback_builder import build_feedback_blocks
 from thread_context import conversation_store
+
+LEARNED_SUBTYPES = {None, "file_share", "thread_broadcast"}
+
+RUNBOOK_WRITES = {"slack_create_canvas", "slack_update_canvas", "create_runbook"}
 
 
 def handle_message(
@@ -17,15 +22,48 @@ def handle_message(
     say_stream: SayStream,
     set_status: SetStatus,
 ):
-    """Handle messages sent to the agent via DM or in threads the bot is part of."""
-    # Skip message subtypes (edits, deletes, etc.) and bot messages.
-    if event.get("subtype"):
-        return
+    """Handle messages sent to the agent via DM or in threads the bot is part of.
+
+    The agent also learns from channel messages, adding anything they settle
+    to the team's runbooks.
+    """
     if event.get("bot_id"):
         return
 
     is_dm = event.get("channel_type") == "im"
     is_thread_reply = event.get("thread_ts") is not None
+
+    if not is_dm and event.get("subtype") in LEARNED_SUBTYPES:
+        try:
+            deps = AgentDeps(
+                client=client,
+                user_id=context.user_id,
+                channel_id=context.channel_id,
+                thread_ts=event.get("thread_ts") or event["ts"],
+                message_ts=event["ts"],
+                user_token=context.user_token,
+            )
+            result = asyncio.run(
+                run_agent(
+                    f"Learn from this channel message:\n\n{event.get('text', '')}", deps
+                )
+            )
+            if any(
+                getattr(item.raw_item, "name", None) in RUNBOOK_WRITES
+                for item in result.new_items
+            ):
+                client.chat_postEphemeral(
+                    channel=context.channel_id,
+                    user=context.user_id,
+                    thread_ts=event.get("thread_ts"),
+                    markdown_text=result.final_output,
+                )
+        except Exception:
+            logger.exception("Failed to learn from message")
+
+    # Skip message subtypes (edits, deletes, etc.).
+    if event.get("subtype"):
+        return
 
     if is_dm:
         pass
@@ -75,7 +113,7 @@ def handle_message(
             message_ts=event["ts"],
             user_token=context.user_token,
         )
-        result = run_agent(input_items, deps)
+        result = asyncio.run(run_agent(input_items, deps))
 
         # Stream response in thread with feedback buttons
         streamer = say_stream()

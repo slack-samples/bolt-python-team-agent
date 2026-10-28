@@ -1,3 +1,4 @@
+import asyncio
 import re
 from logging import Logger
 
@@ -65,7 +66,7 @@ def handle_app_mentioned(
             message_ts=event["ts"],
             user_token=context.user_token,
         )
-        result = run_agent(input_items, deps)
+        result = asyncio.run(run_agent(input_items, deps))
 
         # Stream response in thread with feedback buttons
         streamer = say_stream()
