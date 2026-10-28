@@ -155,7 +155,7 @@ pip install -e ".[dev]"
 
 ### OpenAI Setup
 
-This app uses OpenAI's `gpt-4.1-mini` model through the OpenAI Agents SDK.
+This app uses OpenAI's `gpt-6.1-sol` model through the OpenAI Agents SDK.
 
 1. Create an API key from your [OpenAI dashboard](https://platform.openai.com/api-keys).
 1. Rename `.env.sample` to `.env`.

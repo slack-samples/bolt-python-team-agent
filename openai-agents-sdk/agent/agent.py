@@ -88,7 +88,7 @@ agent = Agent[AgentDeps](
         f"`{wrapper.context.channel_id}`.\n"
     ),
     tools=[add_emoji_reaction, create_runbook, list_runbooks, read_runbook],
-    model="gpt-4.1-mini",
+    model="gpt-6.1-sol",
 )
 
 
