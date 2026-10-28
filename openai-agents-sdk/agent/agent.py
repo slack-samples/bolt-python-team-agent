@@ -1,5 +1,6 @@
-from agents import Agent, Runner
+from agents import Agent, OpenAIProvider, RunConfig, Runner
 from agents.mcp import MCPServerStreamableHttp, create_static_tool_filter
+from openai import AsyncOpenAI
 
 from agent.deps import AgentDeps
 from agent.tools import (
@@ -93,30 +94,38 @@ agent = Agent[AgentDeps](
 
 async def run_agent(input_items, deps):
     """Run the agent with its runbook tools, or the Slack MCP Server's when the user connected it."""
-    if not deps.user_token:
-        return await Runner.run(
-            agent,
-            input=input_items,
-            context=deps,
-            max_turns=MAX_TURNS,
-            error_handlers=ERROR_HANDLERS,
+    # Each run starts a new event loop with asyncio.run, so give it an OpenAI client of its
+    # own. The SDK's default client is shared and stays bound to the loop that first used it.
+    async with AsyncOpenAI() as openai_client:
+        run_config = RunConfig(
+            model_provider=OpenAIProvider(openai_client=openai_client)
         )
+        if not deps.user_token:
+            return await Runner.run(
+                agent,
+                input=input_items,
+                context=deps,
+                max_turns=MAX_TURNS,
+                error_handlers=ERROR_HANDLERS,
+                run_config=run_config,
+            )
 
-    mcp_server = MCPServerStreamableHttp(
-        params={
-            "url": SLACK_MCP_URL,
-            "headers": {"Authorization": f"Bearer {deps.user_token}"},
-        },
-        tool_filter=create_static_tool_filter(allowed_tool_names=RUNBOOK_TOOLS),
-    )
-    async with mcp_server:
-        agent_with_mcp = agent.clone(
-            tools=[add_emoji_reaction], mcp_servers=[mcp_server]
+        mcp_server = MCPServerStreamableHttp(
+            params={
+                "url": SLACK_MCP_URL,
+                "headers": {"Authorization": f"Bearer {deps.user_token}"},
+            },
+            tool_filter=create_static_tool_filter(allowed_tool_names=RUNBOOK_TOOLS),
         )
-        return await Runner.run(
-            agent_with_mcp,
-            input=input_items,
-            context=deps,
-            max_turns=MAX_TURNS,
-            error_handlers=ERROR_HANDLERS,
-        )
+        async with mcp_server:
+            agent_with_mcp = agent.clone(
+                tools=[add_emoji_reaction], mcp_servers=[mcp_server]
+            )
+            return await Runner.run(
+                agent_with_mcp,
+                input=input_items,
+                context=deps,
+                max_turns=MAX_TURNS,
+                error_handlers=ERROR_HANDLERS,
+                run_config=run_config,
+            )
