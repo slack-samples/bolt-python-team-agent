@@ -14,7 +14,7 @@ def build_app_home_view(
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Hey there :wave: I'm your Slack assistant.",
+                "text": "Hey there :wave: I'm your team agent.",
             },
         },
         {
@@ -22,9 +22,10 @@ def build_app_home_view(
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    "I'm here to help! You can ask me questions, have a conversation, "
-                    "or ask me to do things in Slack.\n\n"
-                    "Send me a *direct message* or *mention me in a channel* to get started."
+                    "I keep your team's runbooks current and help route requests.\n\n"
+                    "*Invite me to your team channel* and I'll add what your threads "
+                    "figure out to runbooks as they wrap up. *Mention me* or *send me a "
+                    "direct message* to find a runbook or triage a request."
                 ),
             },
         },
@@ -47,7 +48,7 @@ def build_app_home_view(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "The agent can search messages, read channels, and more.",
+                        "text": "The agent works with runbooks as you, through the Slack MCP Server.",
                     }
                 ],
             }
@@ -68,7 +69,7 @@ def build_app_home_view(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "The Slack MCP Server enables the agent to search messages, read channels, and more.",
+                        "text": "Connect the Slack MCP Server so the agent works with runbooks as you.",
                     }
                 ],
             }
@@ -79,7 +80,7 @@ def build_app_home_view(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "\U0001f534 *Slack MCP Server is disconnected.* <https://github.com/slack-samples/bolt-python-starter-agent/blob/main/claude-agent-sdk/README.md#slack-mcp-server|Learn how to enable the Slack MCP Server.>",
+                    "text": "\U0001f534 *Slack MCP Server is disconnected.* <https://github.com/slack-samples/bolt-python-team-agent/blob/main/claude-agent-sdk/README.md#slack-mcp-server|Learn how to enable the Slack MCP Server.>",
                 },
             }
         )
@@ -89,7 +90,7 @@ def build_app_home_view(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "The Slack MCP Server enables the agent to search messages, read channels, and more.",
+                        "text": "Connect the Slack MCP Server so the agent works with runbooks as you.",
                     }
                 ],
             }
