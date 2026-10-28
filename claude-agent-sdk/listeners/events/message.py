@@ -10,6 +10,14 @@ from agent import AgentDeps, run_agent
 from listeners.views.feedback_builder import build_feedback_blocks
 from thread_context import session_store
 
+LEARNED_SUBTYPES = {None, "file_share", "thread_broadcast"}
+
+RUNBOOK_WRITES = {
+    "mcp__agent-tools__create_runbook",
+    "mcp__slack-mcp__slack_create_canvas",
+    "mcp__slack-mcp__slack_update_canvas",
+}
+
 
 async def handle_message(
     client: AsyncWebClient,
@@ -20,15 +28,44 @@ async def handle_message(
     say_stream: AsyncSayStream,
     set_status: AsyncSetStatus,
 ):
-    """Handle messages sent to the agent via DM or in threads the bot is part of."""
-    # Skip message subtypes (edits, deletes, etc.) and bot messages.
-    if event.get("subtype"):
-        return
+    """Handle messages sent to the agent via DM or in threads the bot is part of.
+
+    The agent also learns from channel messages, adding anything they settle
+    to the team's runbooks.
+    """
     if event.get("bot_id"):
         return
 
     is_dm = event.get("channel_type") == "im"
     is_thread_reply = event.get("thread_ts") is not None
+
+    if not is_dm and event.get("subtype") in LEARNED_SUBTYPES:
+        try:
+            deps = AgentDeps(
+                client=client,
+                user_id=context.user_id,
+                channel_id=context.channel_id,
+                thread_ts=event.get("thread_ts") or event["ts"],
+                message_ts=event["ts"],
+                user_token=context.user_token,
+            )
+            learned_text, _, tool_names = await run_agent(
+                f"Learn from this channel message:\n\n{event.get('text', '')}",
+                deps=deps,
+            )
+            if RUNBOOK_WRITES.intersection(tool_names):
+                await client.chat_postEphemeral(
+                    channel=context.channel_id,
+                    user=context.user_id,
+                    thread_ts=event.get("thread_ts"),
+                    markdown_text=learned_text,
+                )
+        except Exception:
+            logger.exception("Failed to learn from message")
+
+    # Skip message subtypes (edits, deletes, etc.).
+    if event.get("subtype"):
+        return
 
     if is_dm:
         pass
@@ -71,7 +108,7 @@ async def handle_message(
             message_ts=event["ts"],
             user_token=context.user_token,
         )
-        response_text, new_session_id = await run_agent(
+        response_text, new_session_id, _ = await run_agent(
             text, session_id=existing_session_id, deps=deps
         )
 
