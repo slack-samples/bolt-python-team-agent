@@ -118,7 +118,9 @@ def run_agent(text, deps, message_history=None):
     if deps.user_token:
         toolset = MCPToolset(
             SLACK_MCP_URL,
-            headers={"Authorization": f"Bearer {deps.user_token}"},
+            headers={
+                "Authorization": f"Bearer {deps.user_token}",
+            },
         ).filtered(lambda _ctx, tool: tool.name in RUNBOOK_TOOLS)
 
     return agent.run_sync(
