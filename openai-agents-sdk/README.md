@@ -341,7 +341,7 @@ The `agent.py` file defines the team agent with a system prompt, personality, an
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
-The `tools` directory contains the runbook tools, which call `files.list`, `canvases.getContent`, and `canvases.create` with the bot token, and one example tool (emoji reaction). `canvases.getContent` isn't in `slack_sdk` yet, so `read_runbook` calls it with `client.api_call`.
+The `tools` directory contains the runbook tools, which call `files.list`, `canvases.getContent`, and `canvases.create` with the bot token, and one example tool (emoji reaction).
 
 ### `/thread_context`
 
