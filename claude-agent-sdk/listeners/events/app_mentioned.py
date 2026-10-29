@@ -61,7 +61,7 @@ async def handle_app_mentioned(
             message_ts=event["ts"],
             user_token=context.user_token,
         )
-        response_text, new_session_id = await run_agent(
+        response_text, new_session_id, _ = await run_agent(
             cleaned_text, session_id=existing_session_id, deps=deps
         )
 

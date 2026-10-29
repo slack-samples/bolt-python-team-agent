@@ -1,5 +1,5 @@
 [project]
-name = "bolt-python-support-agent-claude"
+name = "bolt-python-team-agent-claude-agent-sdk"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,7 +17,7 @@ test = [
     "pytest-asyncio==1.4.0",
 ]
 dev = [
-    "bolt-python-support-agent-claude[test]",
+    "bolt-python-team-agent-claude-agent-sdk[test]",
     "ruff==0.17.2",
 ]
 
