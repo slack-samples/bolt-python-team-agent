@@ -1,21 +1,34 @@
-# Starter Agent for Slack (Bolt for Python and Pydantic AI)
+# Team Agent for Slack (Bolt for Python and Pydantic AI)
 
-A minimal starter template for building AI-powered Slack agents with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [Pydantic AI](https://ai.pydantic.dev/) using models from [Anthropic](https://anthropic.com) or [OpenAI](https://openai.com). Works with the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server) to search messages, read channels, send messages, and manage canvases — all from within your agent.
+A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [Pydantic AI](https://ai.pydantic.dev/) using models from [Anthropic](https://anthropic.com) or [OpenAI](https://openai.com). It keeps your team's runbooks current as threads wrap up and helps route the requests that come in. Runbooks are Slack canvases that the agent reads and writes through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
 
 ## App Overview
 
-The starter agent interacts with users through four entry points:
+The team agent interacts with users through five entry points:
 
 * **App Home** — Displays a welcome message with instructions on how to interact.
-* **Direct Messages** — Users message the agent directly. It responds in-thread, maintaining context across follow-ups.
-* **Channel @mentions** — Mention the agent in any channel to get a response without leaving the conversation.
+* **Direct Messages** — Users message the agent directly to find a runbook or triage a request. It responds in-thread, maintaining context across follow-ups.
+* **Channel @mentions** — Mention the agent in a team channel with a request. It answers from a runbook when one covers it, or offers to start one.
+* **Channel messages** — The agent follows along in channels it's a member of. When a message settles something worth keeping, the agent adds it to the team's runbooks on its own.
 * **Assistant Panel** — Users click _Add Agent_ in Slack, select the agent, and pick from suggested prompts or type a message.
 
-The template also includes one example tool (emoji reactions). Add your own tools to customize it for your use case.
+The agent works with runbooks through three app tools that call the Web API with the bot token: `list_runbooks`, `read_runbook`, and `create_runbook`. When a person has connected the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), the agent uses its runbook tools as that person instead, which can also edit existing runbooks section by section. One more app tool (emoji reactions) shows a request was picked up. Add your own tools to customize it for your use case.
+
+### Runbooks
+
+Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the team does something: the steps, who owns it, and who to escalate to. Anyone can read and edit them in Slack, and the agent does too:
+
+* **Reading** — When a request comes in, the agent finds the runbook that covers it and answers from it.
+* **Writing on request** — Ask the agent to write a runbook and it creates one. With the Slack MCP Server connected, it can also fix the runbook that covers the topic.
+* **Learning from messages** — The same agent reads each channel message. If the message fixed a problem, named an owner, made a decision, or corrected a runbook, the agent creates a runbook for it, or, with the Slack MCP Server connected, updates the one that covers it. Most messages settle nothing worth keeping, and the agent leaves those alone.
+
+This is the loop the template is built to show: the runbooks the agent writes from messages are the runbooks it answers from next time.
+
+When the agent changes a runbook, it tells the message's author with an ephemeral message only they can see. Nothing is posted to the channel. New runbooks are added as a tab in the channel they were learned in, so the whole team can read and edit them. The agent only gets runbook tools, so it can't send messages or read threads.
 
 ### Slack MCP Server
 
-When connected to the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server), the agent can search messages and files, read channel history and threads, send and schedule messages, and create and update canvases. When deployed with OAuth (HTTP mode), the agent automatically connects to the Slack MCP Server using the user's token.
+Connecting the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server) is optional. When deployed with OAuth (HTTP mode), a person who connects it from the Home tab has the agent work with runbooks as them: it finds runbooks with Slack search and reads and writes canvases with their access, so edits show their name. Everyone else gets the bot token's runbook tools.
 
 ## Setup
 
@@ -83,8 +96,8 @@ slack login
 #### Initializing the project
 
 ```sh
-slack create my-starter-agent --template slack-samples/bolt-python-starter-agent --subdir pydantic-ai
-cd my-starter-agent
+slack create my-team-agent --template slack-samples/bolt-python-team-agent --subdir pydantic-ai
+cd my-team-agent
 ```
 
 </details>
@@ -119,8 +132,8 @@ SLACK_APP_TOKEN=YOUR_SLACK_APP_TOKEN
 #### Initializing the project
 
 ```sh
-git clone https://github.com/slack-samples/bolt-python-starter-agent.git my-starter-agent
-cd my-starter-agent
+git clone https://github.com/slack-samples/bolt-python-team-agent.git my-team-agent
+cd my-team-agent/pydantic-ai
 ```
 
 </details>
@@ -144,7 +157,7 @@ This app supports both Anthropic and OpenAI as AI providers. Set at least one AP
 
 ### Anthropic Setup
 
-Uses Anthropic's `claude-sonnet-4-6` model through Pydantic AI.
+Uses Anthropic's `claude-sonnet-5-5` model through Pydantic AI.
 
 1. Create an API key from your [Anthropic dashboard](https://console.anthropic.com/settings/keys).
 1. Rename `.env.sample` to `.env`.
@@ -156,7 +169,7 @@ ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
 
 ### OpenAI Setup
 
-Uses OpenAI's `gpt-4.1-mini` model through Pydantic AI.
+Uses OpenAI's `gpt-6.1-sol` model through Pydantic AI.
 
 1. Create an API key from your [OpenAI dashboard](https://platform.openai.com/api-keys).
 1. Rename `.env.sample` to `.env`.
@@ -285,9 +298,11 @@ Once the agent is running, there are several ways to interact:
 
 **App Home** — Open the agent in Slack and click the _Home_ tab. You'll see a welcome message with instructions on how to interact.
 
-**Direct Messages** — Open a DM with the agent. You'll see suggested prompts like _Write a Message_, _Summarize_, and _Brainstorm_ — pick one or type your own message. The agent replies in a thread. Send follow-up messages in the same thread and the agent will maintain the full conversation context.
+**Direct Messages** — Open a DM with the agent. You'll see suggested prompts like _Find a Runbook_, _Triage a Request_, and _Write a Runbook_ — pick one or type your own message. The agent replies in a thread. Send follow-up messages in the same thread and the agent will maintain the full conversation context.
 
-**Channel @mentions** — Invite the agent to a channel by typing `/invite @agent-name` in the message box, then @mention it followed by your message. The agent responds in a thread so the channel stays clean.
+**Channel @mentions** — Invite the agent to your team channel by typing `/invite @agent-name` in the message box, then @mention it followed by your request. The agent responds in a thread so the channel stays clean.
+
+**Channel messages** — Talk through a problem in your team channel. When you post the fix, the agent adds it to a runbook and sends you an ephemeral note with the link. Ask about the same problem later and it answers from that runbook.
 
 **Assistant Panel** — Click _Add Agent_ in the top-right corner of Slack, select the agent from the list, then pick a suggested prompt or type a message.
 
@@ -323,7 +338,7 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 - `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
 - `app_mentioned.py` — Responds to @mentions in channels.
-- `message.py` — Responds to direct messages from users.
+- `message.py` — Responds to direct messages and learns from channel messages by connected users.
 
 **`/listeners/actions`** — Handles interactive components:
 
@@ -336,11 +351,11 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 ### `/agent`
 
-The `agent.py` file defines the Pydantic AI Agent with a system prompt, personality, and tool configuration.
+The `agent.py` file defines the team agent with a system prompt, personality, and tool configuration. `run_agent()` gives it the bot token's runbook tools, or the Slack MCP Server's runbook tools when the person has connected it.
 
 The `deps.py` file defines the `AgentDeps` dataclass passed to the agent at runtime, providing access to the Slack client and conversation context.
 
-The `tools` directory contains one example tool (emoji reaction) that the agent can call during a conversation.
+The `tools` directory contains the runbook tools, which call `files.list`, `canvases.getContent`, and `canvases.create` with the bot token, and one example tool (emoji reaction).
 
 ### `/thread_context`
 
