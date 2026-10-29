@@ -104,12 +104,6 @@ agent_tools_server = create_sdk_mcp_server(
     ],
 )
 
-emoji_tools_server = create_sdk_mcp_server(
-    name="agent-tools",
-    version="1.0.0",
-    tools=[add_emoji_reaction_tool],
-)
-
 
 async def run_agent(
     text: str,
@@ -138,7 +132,7 @@ async def run_agent(
 
     if deps and deps.user_token:
         mcp_servers = {
-            "agent-tools": emoji_tools_server,
+            "agent-tools": agent_tools_server,
             "slack-mcp": McpHttpServerConfig(
                 type="http",
                 url=SLACK_MCP_URL,
@@ -148,17 +142,20 @@ async def run_agent(
             ),
         }
         allowed_tools = [EMOJI_TOOL, *RUNBOOK_TOOLS]
+        disallowed_tools = [tool for tool in AGENT_TOOLS if tool != EMOJI_TOOL]
     else:
         mcp_servers = {
             "agent-tools": agent_tools_server,
         }
         allowed_tools = AGENT_TOOLS
+        disallowed_tools = []
 
     options = ClaudeAgentOptions(
         model="claude-sonnet-5-5",
         system_prompt=system_prompt,
         mcp_servers=mcp_servers,
         allowed_tools=allowed_tools,
+        disallowed_tools=disallowed_tools,
         permission_mode="dontAsk",
         max_turns=MAX_TURNS,
         resume=session_id,
