@@ -153,6 +153,7 @@ async def run_agent(
     )
 
     tool_names: list[str] = []
+    result: ResultMessage | None = None
     async with ClaudeSDKClient(options) as client:
         await client.query(text)
 
@@ -166,6 +167,8 @@ async def run_agent(
             if isinstance(message, ResultMessage):
                 result = message
 
+    if result is None:
+        raise RuntimeError("The agent stopped without a result.")
     if result.subtype == "error_max_turns":
         return MAX_TURNS_REPLY, result.session_id, tool_names
     return result.result or "", result.session_id, tool_names
