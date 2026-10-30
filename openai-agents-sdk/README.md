@@ -1,6 +1,6 @@
 # Team Agent for Slack (Bolt for Python and OpenAI Agents SDK)
 
-A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) using models from [OpenAI](https://openai.com). It keeps your team's runbooks current as threads wrap up and helps route the requests that come in. Runbooks are Slack canvases that the agent reads and writes through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
+A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) using models from [OpenAI](https://openai.com). It keeps your team's runbooks current from what channel messages settle and helps route the requests that come in. Runbooks are Slack canvases the agent reads and writes with the bot token, or as a person who has connected the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
 
 ## App Overview
 
@@ -322,9 +322,9 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 **`/listeners/events`** — Handles incoming events:
 
-- `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
+- `app_home_opened.py` — Publishes the App Home view, or pins suggested prompts to the agent DM Messages tab (branches on `event["tab"]`).
 - `app_mentioned.py` — Responds to @mentions in channels.
-- `message.py` — Responds to direct messages and learns from channel messages by connected users.
+- `message.py` — Responds to direct messages and learns from channel messages.
 
 **`/listeners/actions`** — Handles interactive components:
 
