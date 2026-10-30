@@ -1,6 +1,6 @@
 # Team Agent for Slack (Bolt for Python and Claude Agent SDK)
 
-A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) using models from [Anthropic](https://www.anthropic.com). It keeps your team's runbooks current from what channel messages settle and helps route the requests that come in. Runbooks are Slack canvases the agent reads and writes with the bot token, or as a person who has connected the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
+A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) using models from [Anthropic](https://www.anthropic.com). It keeps your team's runbooks current by learning from channel messages, and helps route the requests that come in. Runbooks are Slack canvases that the agent reads and writes with the bot token, or through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server) for people who connect it.
 
 ## App Overview
 
@@ -24,7 +24,7 @@ Runbooks are Slack canvases titled `Runbook: <topic>`. Each one holds how the te
 
 This is the loop the template is built to show: the runbooks the agent writes from messages are the runbooks it answers from next time.
 
-When the agent changes a runbook, it tells the message's author with an ephemeral message only they can see. Nothing is posted to the channel. New runbooks are added as a tab in the channel they were learned in, so the whole team can read and edit them. The agent only gets runbook tools, so it can't send messages or read threads.
+When the agent changes a runbook, it tells the message's author with an ephemeral message only they can see. Nothing is posted to the channel. New runbooks are added as a tab in the channel they were learned in, so the whole team can read and edit them. The agent is only allowed runbook tools, so it can't send messages or read threads.
 
 ### Slack MCP Server
 
@@ -322,7 +322,7 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 **`/listeners/events`** — Handles incoming events:
 
-- `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
+- `app_home_opened.py` — Publishes the App Home view, or pins suggested prompts to the agent DM Messages tab (branches on `event["tab"]`).
 - `app_mentioned.py` — Responds to @mentions in channels.
 - `message.py` — Responds to direct messages and learns from channel messages.
 

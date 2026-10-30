@@ -322,7 +322,7 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 **`/listeners/events`** — Handles incoming events:
 
-- `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
+- `app_home_opened.py` — Publishes the App Home view, or pins suggested prompts to the agent DM Messages tab (branches on `event["tab"]`).
 - `app_mentioned.py` — Responds to @mentions in channels.
 - `message.py` — Responds to direct messages and learns from channel messages.
 
