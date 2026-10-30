@@ -1,6 +1,9 @@
 # Team Agent for Slack (Bolt for Python and OpenAI Agents SDK)
 
-A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) using models from [OpenAI](https://openai.com). It keeps your team's runbooks current as threads wrap up and helps route the requests that come in. Runbooks are Slack canvases that the agent reads and writes through the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
+A team agent template built with [Bolt for Python](https://docs.slack.dev/tools/bolt-python/) and [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) using models from [OpenAI](https://openai.com). It keeps your team's runbooks current from what channel messages settle and helps route the requests that come in. Runbooks are Slack canvases the agent reads and writes with the bot token, or as a person who has connected the [Slack MCP Server](https://github.com/slackapi/slack-mcp-server).
+
+> [!WARNING]
+> **This agent reads every message in the channels it's a member of and acts on what they settle.** With the Slack MCP Server connected, a crafted message could steer it into searching the author's DMs and private channels, or into editing any canvas they can open. Only add it to channels you trust, and refer to [Slack MCP Server](#slack-mcp-server) for how it's connected.
 
 ## App Overview
 
@@ -276,6 +279,8 @@ python3 app_oauth.py
 
 > **Note:** Each time ngrok restarts, it generates a new URL. You'll need to update the ngrok domain in `manifest.json`, `SLACK_REDIRECT_URI` in your `.env`, and re-install the app.
 
+> **Note:** To go back to Socket Mode with `slack run`, comment out `SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET` in `.env` first. Bolt turns on OAuth whenever both are set, and `app.py` then ignores `SLACK_BOT_TOKEN`.
+
 </details>
 
 ### Using the App
@@ -324,7 +329,7 @@ Every incoming request is routed to a "listener". This directory groups each lis
 
 - `app_home_opened.py` — Publishes the App Home view with a welcome message and MCP status.
 - `app_mentioned.py` — Responds to @mentions in channels.
-- `message.py` — Responds to direct messages and learns from channel messages by connected users.
+- `message.py` — Responds to direct messages and learns from channel messages.
 
 **`/listeners/actions`** — Handles interactive components:
 
