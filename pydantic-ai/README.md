@@ -293,8 +293,6 @@ python3 app_oauth.py
 
 > **Note:** Each time ngrok restarts, it generates a new URL. You'll need to update the ngrok domain in `manifest.json`, `SLACK_REDIRECT_URI` in your `.env`, and re-install the app.
 
-> **Note:** To go back to Socket Mode with `slack run`, comment out `SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET` in `.env` first. Bolt turns on OAuth whenever both are set, and `app.py` then ignores `SLACK_BOT_TOKEN`.
-
 </details>
 
 ### Using the App
