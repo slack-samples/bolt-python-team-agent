@@ -16,9 +16,7 @@ async def read_runbook(wrapper: RunContextWrapper[AgentDeps], canvas_id: str) ->
     """
     deps = wrapper.context
     try:
-        response = deps.client.api_call(
-            "canvases.getContent", params={"canvas_id": canvas_id}
-        )
+        response = deps.client.canvases_getContent(canvas_id=canvas_id)
     except SlackApiError as e:
         return f"Could not read the runbook: {e.response['error']}"
     return response.get("content", "")
