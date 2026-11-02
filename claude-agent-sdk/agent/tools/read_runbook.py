@@ -28,12 +28,7 @@ async def read_runbook_tool(args):
     """Read a runbook's content as markdown."""
     deps = agent_deps_var.get()
     try:
-        response = await deps.client.api_call(
-            "canvases.getContent",
-            params={
-                "canvas_id": args["canvas_id"],
-            },
-        )
+        response = await deps.client.canvases_getContent(canvas_id=args["canvas_id"])
         text = response.get("content", "")
     except SlackApiError as e:
         text = f"Could not read the runbook: {e.response['error']}"

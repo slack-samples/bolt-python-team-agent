@@ -26,8 +26,8 @@ async def invoke(tool: SdkMcpTool, deps: AgentDeps, **args) -> str:
 class TestTools:
     def setup_method(self):
         self.client = Mock(AsyncWebClient)
-        self.client.api_call = AsyncMock()
         self.client.canvases_create = AsyncMock()
+        self.client.canvases_getContent = AsyncMock()
         self.client.files_info = AsyncMock(
             return_value={
                 "file": {
@@ -76,21 +76,18 @@ class TestTools:
 
     @pytest.mark.asyncio
     async def test_read_runbook_returns_its_markdown(self):
-        self.client.api_call.return_value = {"content": "# Steps\n1. Rotate the secret"}
+        self.client.canvases_getContent.return_value = {
+            "content": "# Steps\n1. Rotate the secret"
+        }
 
         result = await invoke(read_runbook_tool, self.deps, canvas_id="F123")
 
-        self.client.api_call.assert_called_once_with(
-            "canvases.getContent",
-            params={
-                "canvas_id": "F123",
-            },
-        )
+        self.client.canvases_getContent.assert_called_once_with(canvas_id="F123")
         assert result == "# Steps\n1. Rotate the secret"
 
     @pytest.mark.asyncio
     async def test_read_runbook_reports_errors(self):
-        self.client.api_call.side_effect = slack_error("canvas_not_found")
+        self.client.canvases_getContent.side_effect = slack_error("canvas_not_found")
 
         result = await invoke(read_runbook_tool, self.deps, canvas_id="F404")
 
